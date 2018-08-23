@@ -1,0 +1,41 @@
+{
+  "name": "js13k-disconnected",
+  "version": "1.0.0",
+  "description": "A JS13K Competition Entry",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack --mode development",
+    "build": "webpack --mode production",
+    "hot": "webpack-dev-server -d --hot --inline --progress --colors --port 3000 --open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kamilczak020/JS13K-Disconnected.git"
+  },
+  "keywords": [
+    "game",
+    "js13k",
+    "disconnected",
+    "offline",
+    "contest",
+    "entry"
+  ],
+  "author": "Kamil Solecki",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Kamilczak020/JS13K-Disconnected/issues"
+  },
+  "homepage": "https://github.com/Kamilczak020/JS13K-Disconnected#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-preset-env": "^1.7.0",
+    "html-webpack-plugin": "^4.0.0-alpha",
+    "uglifyjs-webpack-plugin": "^1.3.0",
+    "webpack": "^4.17.1",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5",
+    "zip-webpack-plugin": "^3.0.0"
+  }
+}
