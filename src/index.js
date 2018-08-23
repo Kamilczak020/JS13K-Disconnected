@@ -14,11 +14,11 @@ const store = {
 
 // #############  MENU  ##############
 function drawMenu() {
-  canvas.width = 2000;
-  canvas.height = 2000;
+  const width = canvas.width = 2000;
+  const height = canvas.height = 2000;
 
   context.fillStyle = '#54b3a4';
-  context.fillRect(0, 0, 2000, 2000);
+  context.fillRect(0, 0, width, height);
 
   context.fillStyle = 'black';
   context.font = '70px Arial';

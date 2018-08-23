@@ -16,6 +16,9 @@ module.exports = {
       use: {
           loader: "babel-loader"
       }
+    }, {
+      test: /\.css$/,
+      use: [ 'style-loader', 'css-loader' ],
     }]
   },
   plugins: [
@@ -23,9 +26,9 @@ module.exports = {
       template: './index.html',
       minify: true,
     }),
-    new CopyWebpackPlugin([{
-      from: 'images/'
-    }]),
+    new CopyWebpackPlugin([
+        { from: './images' },
+      ]),
     new ImageminPlugin({
       test: /\.png$/,
       pngquant: {
