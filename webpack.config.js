@@ -1,6 +1,8 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 const ZipPlugin = require('zip-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const ImageminPlugin = require('imagemin-webpack-plugin').default;
 
 module.exports = {
   entry: "./src/index.js",
@@ -21,6 +23,15 @@ module.exports = {
       template: './index.html',
       minify: true,
     }),
+    new CopyWebpackPlugin([{
+      from: 'images/'
+    }]),
+    new ImageminPlugin({
+      test: /\.png$/,
+      pngquant: {
+        quality: '70'
+      }
+    }),
     new ZipPlugin({
       filename: 'game.zip',
       include: [
@@ -28,7 +39,7 @@ module.exports = {
         /\.png$/,
         /\.html$/,
       ]
-    })
+    }),
   ],
   optimization: {
     minimizer: [
