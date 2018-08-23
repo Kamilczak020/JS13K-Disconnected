@@ -1,7 +1,7 @@
 # JS13K-Disconnected
 A JS13K Competition Entry Game. Absolute Work-in-progress.
 
-### Why webpack, why seperate stylesheet, why import css into the js? It doesn't make sense!
+## Why webpack, why seperate stylesheet, why import css into the js? It doesn't make sense!
 All of that has been done solely to ease the development experience by as much as possible.
 If you are like me, you do not like to have to refresh things everytime you make changes to your code.
 
