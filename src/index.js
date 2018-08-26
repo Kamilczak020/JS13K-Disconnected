@@ -8,6 +8,7 @@
  * # GLOBALS
  * # EVENT_HOOKS
  * # GAME_INIT
+ * # MENU
  *
  */
 
@@ -24,11 +25,16 @@ const canvasWidth = canvas.width = 1000;
 context.imageSmoothingEnabled = false;
 
 const store = {
-  phase: '',
-  tick: 0,
-  fpsInterval: 120,
   lastTime: Date.now(),
-  isTransition: false,
+  game: {
+    phase: '',
+    tick: 0,
+    fpsInterval: 120,
+  },
+  transition: {
+    active: false,
+    tick: 0,
+  }
 }
 
 const player = {
@@ -43,14 +49,17 @@ const player = {
 // # EVENT_HOOKS
 document.addEventListener('keyup', (event) => {
   if (event.keyCode == 32) {
-    store.fpsInterval = 120;
-    player.menu.stopX = canvasWidth + 200;
+    if (store.game.phase == 'start') {
+      store.transition.active = true;
+      store.game.fpsInterval = 120;
+      player.menu.stopX = canvasWidth + 200;    
+    }
   }
 });
 
 // # GAME_INIT
 // For dummies - those props set the canvas virtual resolution, not the DOM element size.
-store.phase = 'start';
+store.game.phase = 'start';
 
 context.fillStyle = '#b8b8b8';
 context.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -64,14 +73,17 @@ function animate() {
   const now = Date.now();
   const elapsed = Date.now() - store.lastTime;
   
-  if (elapsed > store.fpsInterval) {
-    store.lastTime = now - (elapsed % store.fpsInterval);
+  if (elapsed > store.game.fpsInterval) {
+    store.lastTime = now - (elapsed % store.game.fpsInterval);
 
-    if (store.phase == 'start') {
+    // # MENU
+    if (store.game.phase == 'start') {
       context.fillStyle = '#b8b8b8';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      player.menu.x < player.menu.stopX ? player.menu.x += player.menu.speed : player.menu.x;
+      if (player.menu.x < player.menu.stopX) {
+        player.menu.x += player.menu.speed;
+      }
 
       const characterSpriteWidth = 34;
       const characterSpriteHeight = 40;
@@ -80,37 +92,53 @@ function animate() {
       const cableSpriteHeight = 4;
 
       const characterSpriteOx = player.menu.x == player.menu.stopX
-        ? !((store.tick % 4) % 2)
-          ? (store.tick % 4) * characterSpriteWidth
+        ? !((store.game.tick % 4) % 2)
+          ? (store.game.tick % 4) * characterSpriteWidth
           : characterSpriteWidth
-        : !((store.tick % 4) % 2)
-          ? (store.tick % 4 + 2) * characterSpriteWidth
+        : !((store.game.tick % 4) % 2)
+          ? (store.game.tick % 4 + 2) * characterSpriteWidth
           : characterSpriteWidth * 3;
 
       // Draw cable
       for (let i = 0; i < player.menu.x; i+= player.menu.speed) {
         const cableSpriteOx = (i % 16) / 8 * cableSpriteWidth;
-        context.drawImage(sprites, cableSpriteOx, 40, cableSpriteWidth, cableSpriteHeight, player.menu.x - (i * 7), player.menu.y + 88, cableSpriteWidth * 4, cableSpriteHeight * 4);
+        context.drawImage(sprites, cableSpriteOx, 40, cableSpriteWidth, cableSpriteHeight, player.menu.x - 15 * 5 - (i * 8), player.menu.y + 104, cableSpriteWidth * 5, cableSpriteHeight * 5);
       }
 
       // Draw character
-      context.drawImage(sprites, characterSpriteOx, 0, characterSpriteWidth, characterSpriteHeight, player.menu.x, player.menu.y, characterSpriteWidth * 4, characterSpriteHeight * 4);
+      context.drawImage(sprites, characterSpriteOx, 0, characterSpriteWidth, characterSpriteHeight, player.menu.x, player.menu.y, characterSpriteWidth * 5, characterSpriteHeight * 5);
 
       if (player.menu.x == player.menu.stopX) {
-        store.fpsInterval = 300;
+        store.game.fpsInterval = 300;
       }
 
       // Draw text n stuff
       context.font = "60px Verdana";
-      context.fillStyle = "#2e2e2e";
-      context.fillText("Reconnected", 300, 110);
+      context.fillStyle = '#2e2e2e';
+      context.fillText('Reconnected', 300, 110);
       
-      context.font = "20px Verdana";
-      context.fillText("Press spacebar to start..", 370, 160);
+      context.font = '20px Verdana';
+      context.fillText('Press spacebar to start..', 370, 160);
       
-      context.fillText("A game by: Kamil Solecki & Matei Copot", 280, 960);
+      context.fillText('A game by: Kamil Solecki & Matei Copot', 280, 960);
 
-      store.tick++;
+      if (store.transition.active) {
+        const transitionAlpha = 0.05 * store.transition.tick;
+        context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
+        context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        store.transition.tick++;
+
+        if (transitionAlpha == 1) {
+          store.game.phase = 'tutorial';
+        }
+      }
+
+      store.game.tick++;
+    }
+
+    if (store.game.phase == 'tutorial') {
+
     }
   }
 }
