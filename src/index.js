@@ -156,6 +156,8 @@ function animate() {
       context.font = '20px Verdana';
       context.fillText('A game by: Kamil Solecki & Matei Copot', 280, 960);
 
+      writeText('123#?!', 500, 500, 10);
+
       if (store.transition.active) {
         context.font = '20px Verdana';
         context.fillText('Good Luck!', 430, 160);
@@ -195,6 +197,35 @@ function animate() {
         }
       }
     }
+  }
+}
+
+function writeText(text, x, y, scale) {
+  for (let i = 0; i < text.length; i++) {
+    const charcode = text.charCodeAt(i);
+    let spriteOx, spriteOy = 0;
+
+    if (charcode == 33) {
+      spriteOx = 50;
+      spriteOy = 61;
+    } else if (charcode == 35) {
+      spriteOx = 55;
+      spriteOy = 61;
+    } else if (charcode == 63) { 
+      spriteOx = 60;
+      spriteOy = 61;
+    } else if (charcode > 47 && charcode < 58) {
+      spriteOx = (charcode - 48) * 5;
+      spriteOy = 61;
+    } else if (charcode > 64 && charcode < 91) {
+      spriteOx = (charcode - 65) * 5 + 1;
+      spriteOy = 53;
+    } else if (charcode > 96 && charcode < 123) {
+      spriteOx = (charcode - 97) * 5 + 1;
+      spriteOy = 44;
+    }
+
+    context.drawImage(sprites, spriteOx, spriteOy, 5, 9, x + scale * i * 6, y, 5 * scale , 9 * scale);
   }
 }
 
