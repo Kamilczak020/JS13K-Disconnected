@@ -29,7 +29,7 @@ const store = {
   game: {
     phase: '',
     tick: 0,
-    fpsInterval: 120,
+    fpsInterval: 60,
   },
   transition: {
     active: false,
@@ -43,6 +43,33 @@ const player = {
     y: 410,
     stopX: canvasWidth - 200,
     speed: 8,
+    animations: {
+      walking: {
+        width: 34,
+        height: 40,
+        scale: 5,
+        ticksPerAnimationFrame: 2,
+        sequence: [2, 3, 4, 3],
+      },
+      standing: {
+       width: 34, 
+       height: 40,
+       scale: 5,
+       ticksPerAnimationFrame: 4,
+       sequence: [0, 1, 2, 1],
+      }
+    }
+  }
+}
+
+const cable = {
+  menu: {
+    sprite: {
+      width: 15,
+      height: 4,
+      scale: 5,
+      count: 2,
+    }
   }
 }
 
@@ -51,7 +78,6 @@ document.addEventListener('keyup', (event) => {
   if (event.keyCode == 32) {
     if (store.game.phase == 'start') {
       store.transition.active = true;
-      store.game.fpsInterval = 120;
       player.menu.stopX = canvasWidth + 200;    
     }
   }
@@ -70,6 +96,14 @@ sprites.src = '../images/sprites.png';
 function animate() {
   requestAnimationFrame(animate);
   
+  function selectAnimationFrame(animation) {
+    if (!animation.ticksPerAnimationFrame) {
+      return animation.sequence[store.game.tick % animation.sequence.length];
+    } else {
+      return animation.sequence[((store.game.tick / animation.ticksPerAnimationFrame) % animation.sequence.length) | 0];
+    }
+  }
+
   const now = Date.now();
   const elapsed = Date.now() - store.lastTime;
   
@@ -84,32 +118,34 @@ function animate() {
       if (player.menu.x < player.menu.stopX) {
         player.menu.x += player.menu.speed;
       }
-
-      const characterSpriteWidth = 34;
-      const characterSpriteHeight = 40;
-
-      const cableSpriteWidth = 15;
-      const cableSpriteHeight = 4;
-
-      const characterSpriteOx = player.menu.x == player.menu.stopX
-        ? !((store.game.tick % 4) % 2)
-          ? (store.game.tick % 4) * characterSpriteWidth
-          : characterSpriteWidth
-        : !((store.game.tick % 4) % 2)
-          ? (store.game.tick % 4 + 2) * characterSpriteWidth
-          : characterSpriteWidth * 3;
-
-      // Draw cable
-      for (let i = 0; i < player.menu.x; i+= player.menu.speed) {
-        const cableSpriteOx = (i % 16) / 8 * cableSpriteWidth;
-        context.drawImage(sprites, cableSpriteOx, 40, cableSpriteWidth, cableSpriteHeight, player.menu.x - 15 * 5 - (i * 8), player.menu.y + 104, cableSpriteWidth * 5, cableSpriteHeight * 5);
-      }
+      
+      // Draw ground
+      context.fillStyle = '#757575';
+      context.fillRect(0, 580, canvasWidth, canvasHeight - 580);
 
       // Draw character
-      context.drawImage(sprites, characterSpriteOx, 0, characterSpriteWidth, characterSpriteHeight, player.menu.x, player.menu.y, characterSpriteWidth * 5, characterSpriteHeight * 5);
+      const playerAnim = player.menu.x < player.menu.stopX ? player.menu.animations.walking : player.menu.animations.standing;
+      context.drawImage(sprites, 
+        selectAnimationFrame(playerAnim) * playerAnim.width,
+        0,
+        playerAnim.width,
+        playerAnim.height,
+        player.menu.x, 
+        player.menu.y, 
+        playerAnim.width * playerAnim.scale, 
+        playerAnim.height * playerAnim.scale);
 
-      if (player.menu.x == player.menu.stopX) {
-        store.game.fpsInterval = 300;
+      // Draw cable
+      for (let i = 0; i < player.menu.x - cable.menu.sprite.width; i+= cable.menu.sprite.width) {
+        context.drawImage(sprites, 
+          i % cable.menu.sprite.count,
+          40,
+          cable.menu.sprite.width,
+          cable.menu.sprite.height, 
+          player.menu.x - cable.menu.sprite.width * cable.menu.sprite.scale * i / cable.menu.sprite.width, 
+          player.menu.y + 104, 
+          cable.menu.sprite.width * cable.menu.sprite.scale, 
+          cable.menu.sprite.height * cable.menu.sprite.scale);
       }
 
       // Draw text n stuff
@@ -118,11 +154,12 @@ function animate() {
       context.fillText('Reconnected', 300, 110);
       
       context.font = '20px Verdana';
-      context.fillText('Press spacebar to start..', 370, 160);
-      
       context.fillText('A game by: Kamil Solecki & Matei Copot', 280, 960);
 
       if (store.transition.active) {
+        context.font = '20px Verdana';
+        context.fillText('Good Luck!', 430, 160);
+
         const transitionAlpha = 0.05 * store.transition.tick;
         context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
         context.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -130,15 +167,33 @@ function animate() {
         store.transition.tick++;
 
         if (transitionAlpha == 1) {
+          store.transition.tick = 0;
           store.game.phase = 'tutorial';
         }
+      } else {
+        context.font = '20px Verdana';
+        context.fillText('Press spacebar to start..', 370, 160);
       }
 
       store.game.tick++;
     }
 
     if (store.game.phase == 'tutorial') {
+      // Background
+      context.fillStyle = 'purple';
+      context.fillRect(0, 0, canvasWidth, canvasHeight);
 
+      if (store.transition.active) {
+        const transitionAlpha = 1 - 0.05 * store.transition.tick;
+        context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
+        context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        store.transition.tick++;
+
+        if (transitionAlpha == 0) {
+          store.transition.active = false;
+        }
+      }
     }
   }
 }
