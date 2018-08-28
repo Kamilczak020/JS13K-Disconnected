@@ -194,7 +194,19 @@ function animate() {
   }
 }
 
-function writeText(text, x, y, scale, color) {
+const textCanvas = document.createElement('canvas');
+const textCtx = textCanvas.getContext('2d');
+const textColorCanvas = document.createElement('canvas');
+const textColorCtx = textColorCanvas.getContext('2d');
+function writeText(text, x, y, scale, color = 'black') {
+  const tw = textCanvas.width = textColorCanvas.width = 6 * scale * text.length;
+  const th = textCanvas.height = textColorCanvas.height = 9 * scale;
+  textColorCtx.imageSmoothingEnabled = false;
+  textCtx.imageSmoothingEnabled = false;
+  textColorCtx.fillStyle = color;
+  textColorCtx.fillRect(0, 0, tw, th);
+  textColorCtx.globalCompositeOperation = 'destination-in';
+
   for (let i = 0; i < text.length; i++) {
     const charcode = text.charCodeAt(i);
     
@@ -209,8 +221,18 @@ function writeText(text, x, y, scale, color) {
       : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
       : [0, 0];
 
-    context.drawImage(sprites, spriteOx, spriteOy, 5, 9, x + scale * i * 6, y, 5 * scale , 9 * scale);
+    textCtx.drawImage(
+      sprites,
+      spriteOx, spriteOy,
+      5, 9,
+      scale * i * 6, 0,
+      5 * scale, 9 * scale,
+    );
   }
+
+  textColorCtx.drawImage(textCanvas, 0, 0);
+
+  context.drawImage(textColorCanvas, x, y);
 }
 
-animate();
+sprites.onload = () => animate();
