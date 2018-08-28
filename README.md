@@ -2,7 +2,6 @@
 A JS13K Competition Entry Game. Absolute Work-in-progress.
 
 ## TODO, or in other words, the gameplan.
- - [ ] Make text accept colors by drawing it to an off-canvas and coating with color
  - [ ] Do story / dialogues
  - [ ] Develop game board / grid, plan out movement (fluid / rigid to grid)
  - [ ] Create game phase sprites
