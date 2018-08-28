@@ -1,7 +1,18 @@
 # JS13K-Disconnected
 A JS13K Competition Entry Game. Absolute Work-in-progress.
 
-## Story
+## TODO, or in other words, the gameplan.
+ - [ ] Make text accept colors by drawing it to an off-canvas and coating with color
+ - [ ] Do story / dialogues
+ - [ ] Develop game board / grid, plan out movement (fluid / rigid to grid)
+ - [ ] Create game phase sprites
+ - [ ] Implement base game mechanics
+ - [ ] Create tutorial
+ - [ ] Create level builder 
+ - [ ] Implement score, scoreboard, timer?
+ - [ ] Golf it! (into separate file plz)
+
+## Storytime!
 You know that feeling, when you are sitting in front of your PC (ok, just for the sake of peace of mind) or console,
 mindlessly clicking around, opening and closing applications while popping in and out of reddit? 
 
@@ -25,17 +36,17 @@ The rage pretty much enveloped you right there. But fear not! We are here to sav
 
 The goal of this game is for you to fix the thing that frustrates us the most. You will fix the internet!
 
-## changes after initial dev phase
+## Changes after dev phase
 
-### html
-no html/head/body, just
+### .html
+no html/head/body, just:
  - meta favicon tag
  - inline style tag
  - canvas
  - possible additional visual html
  - script for JS
 
-## js
+### .js
  - the canvas will be referenced directly by id, no need to define it
 
 ## Why webpack, why seperate stylesheet, why import css into the js? It doesn't make sense!
@@ -45,6 +56,5 @@ If you are like me, you do not like to have to refresh things everytime you make
 Hence, everything (but the images) refreshes by itself as long as webpack dev server is running, making the process smooth and painless.
 Compression and minification is there to give you a preview of what is the approximate zip size as of now. In reality, it will get smaller than that by a notch.
 
-
-Do note, that this is absolutely not the final state of things.
+Do note, however, that this is absolutely not the final state of things.
 In the end, everything will be manually put through appropriate minifiers and compressors (Closure, tinypng, JSCrush / Packer) , to reduce the size to the minimum.
