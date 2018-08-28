@@ -138,7 +138,7 @@ function animate() {
       // Draw cable
       for (let i = 0; i < player.menu.x - cable.menu.sprite.width; i+= cable.menu.sprite.width) {
         context.drawImage(sprites, 
-          i % cable.menu.sprite.count,
+          i % cable.menu.sprite.count * 15,
           40,
           cable.menu.sprite.width,
           cable.menu.sprite.height, 
@@ -149,14 +149,9 @@ function animate() {
       }
 
       // Draw text n stuff
-      context.font = "60px Verdana";
-      context.fillStyle = '#2e2e2e';
-      context.fillText('Reconnected', 300, 110);
+      writeText('Reconnected', 270, 50, 7);
       
-      context.font = '20px Verdana';
-      context.fillText('A game by: Kamil Solecki & Matei Copot', 280, 960);
-
-      writeText('123#?!', 500, 500, 10);
+      writeText('A game by: Kamil Solecki and Matei Copot', 250, 950, 2);
 
       if (store.transition.active) {
         context.font = '20px Verdana';
@@ -173,8 +168,7 @@ function animate() {
           store.game.phase = 'tutorial';
         }
       } else {
-        context.font = '20px Verdana';
-        context.fillText('Press spacebar to start..', 370, 160);
+        writeText('Press spacebar to start', 360, 120, 2);
       }
 
       store.game.tick++;
@@ -200,30 +194,20 @@ function animate() {
   }
 }
 
-function writeText(text, x, y, scale) {
+function writeText(text, x, y, scale, color) {
   for (let i = 0; i < text.length; i++) {
     const charcode = text.charCodeAt(i);
-    let spriteOx, spriteOy = 0;
-
-    if (charcode == 33) {
-      spriteOx = 50;
-      spriteOy = 61;
-    } else if (charcode == 35) {
-      spriteOx = 55;
-      spriteOy = 61;
-    } else if (charcode == 63) { 
-      spriteOx = 60;
-      spriteOy = 61;
-    } else if (charcode > 47 && charcode < 58) {
-      spriteOx = (charcode - 48) * 5;
-      spriteOy = 61;
-    } else if (charcode > 64 && charcode < 91) {
-      spriteOx = (charcode - 65) * 5 + 1;
-      spriteOy = 53;
-    } else if (charcode > 96 && charcode < 123) {
-      spriteOx = (charcode - 97) * 5 + 1;
-      spriteOy = 44;
-    }
+    
+    const [spriteOx, spriteOy] =
+        charcode === 33 ? [50, 62]
+      : charcode === 35 ? [55, 62]
+      : charcode === 63 ? [60, 62]
+      : charcode === 46 ? [65, 62]
+      : charcode === 58 ? [70, 62]
+      : charcode > 47 && charcode < 58 ? [(charcode - 48) * 5, 61]
+      : charcode > 64 && charcode < 91 ? [(charcode - 65) * 5 + 1, 53]
+      : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
+      : [0, 0];
 
     context.drawImage(sprites, spriteOx, spriteOy, 5, 9, x + scale * i * 6, y, 5 * scale , 9 * scale);
   }
