@@ -9,6 +9,7 @@
  * # EVENT_HOOKS
  * # GAME_INIT
  * # MENU
+ * # TUTORIAL
  *
  */
 
@@ -34,7 +35,7 @@ const store = {
   transition: {
     active: false,
     tick: 0,
-  }
+  },
 }
 
 const player = {
@@ -71,6 +72,30 @@ const cable = {
       count: 2,
     }
   }
+}
+
+const text = {
+  'title': {
+    x: 250,
+    y: 100,
+    duration: 55,
+    holdTime: 10,
+    elapsed: 0,
+    scale: 5,
+    value: 'Reconnected',
+  },
+  'tutorial-1': {
+    x: 0,
+    y: 0,
+    width: 300,
+    duration: 100,
+    elapsed: 0,
+    value: 'Welcome to Reconnected!',
+  }
+};
+
+const grid = {
+  size: [0, 0],
 }
 
 // # EVENT_HOOKS
@@ -149,13 +174,12 @@ function animate() {
       }
 
       // Draw text n stuff
-      writeText('Reconnected', 270, 50, 7);
+      writeText(text['title']);
       
-      writeText('A game by: Kamil Solecki and Matei Copot', 250, 950, 2);
+      //writeText('A game by: Kamil Solecki and Matei Copot', 250, 950, 2);
 
       if (store.transition.active) {
-        context.font = '20px Verdana';
-        context.fillText('Good Luck!', 430, 160);
+        //writeText('Good Luck!', 440, 120, 2);
 
         const transitionAlpha = 0.05 * store.transition.tick;
         context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
@@ -168,16 +192,19 @@ function animate() {
           store.game.phase = 'tutorial';
         }
       } else {
-        writeText('Press spacebar to start', 360, 120, 2);
+        //writeText('Press spacebar to start', 360, 120, 2);
       }
 
       store.game.tick++;
     }
 
+    // # TUTORIAL
     if (store.game.phase == 'tutorial') {
       // Background
       context.fillStyle = 'purple';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      grid.size = [3, 6];
 
       if (store.transition.active) {
         const transitionAlpha = 1 - 0.05 * store.transition.tick;
@@ -199,8 +226,22 @@ const textContext = textCanvas.getContext('2d');
 const textColorCanvas = document.createElement('canvas');
 const textColorContext = textColorCanvas.getContext('2d');
 
-function writeText(text, x, y, scale, color = 'black') {
-  const textWidth = textCanvas.width = textColorCanvas.width = 6 * scale * text.length;
+function writeText(text, color = 'black') {
+  const characterCount = text.duration > 0 ? ((text.elapsed / (text.duration / text.value.length)) | 0)
+    : text.value.length;
+  
+    console.log(characterCount);
+  if (text.elapsed < text.duration + text.holdTime || text.duration == 0) {
+    for (let i = 0; i < characterCount; i++) {
+      writeLetter(text.value[i], text.x + i * text.scale * 6, text.y, text.scale, color);
+    }
+  
+    text.elapsed++;
+  }
+}
+
+function writeLetter(letter, x, y, scale, color = 'black') {
+  const textWidth = textCanvas.width = textColorCanvas.width = 6 * scale;
   const textHeight = textCanvas.height = textColorCanvas.height = 9 * scale;
   
   textColorContext.imageSmoothingEnabled = false;
@@ -210,25 +251,22 @@ function writeText(text, x, y, scale, color = 'black') {
   textColorContext.fillRect(0, 0, textWidth, textHeight);
   textColorContext.globalCompositeOperation = 'destination-in';
 
-  for (let i = 0; i < text.length; i++) {
-    const charcode = text.charCodeAt(i);
-    
-    const [spriteOx, spriteOy] =
-        charcode === 33 ? [50, 62]
-      : charcode === 35 ? [55, 62]
-      : charcode === 63 ? [60, 62]
-      : charcode === 46 ? [65, 62]
-      : charcode === 58 ? [70, 62]
-      : charcode > 47 && charcode < 58 ? [(charcode - 48) * 5, 61]
-      : charcode > 64 && charcode < 91 ? [(charcode - 65) * 5 + 1, 53]
-      : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
-      : [0, 0];
+  const charcode = letter.charCodeAt(0);
+  const [spriteOx, spriteOy] =
+      charcode == 33 ? [50, 62]
+    : charcode == 35 ? [55, 62]
+    : charcode == 63 ? [60, 62]
+    : charcode == 46 ? [65, 62]
+    : charcode == 58 ? [70, 62]
+    : charcode > 47 && charcode < 58 ? [(charcode - 48) * 5, 61]
+    : charcode > 64 && charcode < 91 ? [(charcode - 65) * 5 + 1, 53]
+    : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
+    : [0, 0];
 
-    textContext.drawImage(sprites,spriteOx, spriteOy, 5, 9, scale * i * 6, 0, 5 * scale, 9 * scale);
-  }
-
+  textContext.drawImage(sprites, spriteOx, spriteOy, 5, 9, 0, 0, 5 * scale, 9 * scale);
   textColorContext.drawImage(textCanvas, 0, 0);
   context.drawImage(textColorCanvas, x, y);
 }
 
+// Run after resources have loaded
 sprites.onload = () => animate();
