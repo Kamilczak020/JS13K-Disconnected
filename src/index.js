@@ -227,7 +227,7 @@ const textColorCanvas = document.createElement('canvas');
 const textColorContext = textColorCanvas.getContext('2d');
 
 function writeText(text, color = 'black') {
-  const characterCount = text.duration > 0 ? ((text.elapsed / (text.duration / text.value.length)) | 0)
+  const characterCount = text.duration > 0 ? Math.min(text.value.length, ((text.elapsed / (text.duration / text.value.length)) | 0))
     : text.value.length;
   
     console.log(characterCount);
