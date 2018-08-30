@@ -25,8 +25,54 @@ const canvasHeight = canvas.height = 1000;
 const canvasWidth = canvas.width = 1000;
 context.imageSmoothingEnabled = false;
 
+class Viewport {
+  constructor(size) {
+    this.size = size;
+    this.x = 0;
+    this.y = 0;
+  }
+}
+
+class Cell {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = 100;
+  }
+
+  render(viewport) {
+    context.drawImage(sprites, 0, 71, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+  }
+}
+
+class Grid {
+  constructor(size) {
+    this.size = size;
+    this.cells = [];
+    this.viewport = new Viewport(1000);
+
+    for (let column = 0; column < this.size; column++) {
+      this.cells[column] = [];
+      
+      for(let row = 0; row < this.size; row++) {
+        this.cells[column][row] = new Cell(column, row);
+      }
+    }
+  }
+
+  render() {
+    this.cells.forEach(column => {
+      column.forEach(cell => {
+        cell.render(this.viewport);
+      });
+    });
+  }
+}
+
+
 const store = {
   lastTime: Date.now(),
+  grid: new Grid(25),
   game: {
     phase: '',
     tick: 0,
@@ -75,28 +121,47 @@ const cable = {
 }
 
 const text = {
-  'title': {
-    x: 250,
-    y: 100,
-    duration: 55,
-    holdTime: 10,
+  menu: [{
+    x: 260,
+    y: 50,
+    duration: 50,
+    holdTime: 0,
     elapsed: 0,
-    scale: 5,
+    scale: 7,
     value: 'Reconnected',
-  },
-  'tutorial-1': {
-    x: 0,
-    y: 0,
-    width: 300,
-    duration: 100,
+  }, {
+    x: 345,
+    y: 120,
+    duration: 0,
+    delay: 55,
     elapsed: 0,
-    value: 'Welcome to Reconnected!',
+    scale: 2,
+    value: 'Press spacebar to start'
+  }, {
+    x: 260,
+    y: 950,
+    elapsed: 0,
+    delay: 55,
+    duration: 0,
+    scale: 2,
+    value: 'A game by: Kamil Solecki and Matei Copot'
+  }, {
+    x: 420,
+    y: 120,
+    elapsed: 0,
+    duration: 0,
+    scale: 2, 
+    value: 'Good Luck!'
   }
+  ],
+  tutorial: [{
+      x: 0,
+      y: 0,
+      elapsed: 0,
+      scale: 3,
+      value: 'Welcome to Reconnected!',
+    }]
 };
-
-const grid = {
-  size: [0, 0],
-}
 
 // # EVENT_HOOKS
 document.addEventListener('keyup', (event) => {
@@ -104,6 +169,13 @@ document.addEventListener('keyup', (event) => {
     if (store.game.phase == 'start') {
       store.transition.active = true;
       player.menu.stopX = canvasWidth + 200;    
+    }
+  }
+
+  if (store.game.phase == 'tutorial') {
+    if (event.keyCode == 40) {
+      console.log(store.grid.viewport.y);
+      store.grid.viewport.y += 2;
     }
   }
 });
@@ -167,19 +239,19 @@ function animate() {
           40,
           cable.menu.sprite.width,
           cable.menu.sprite.height, 
-          player.menu.x - cable.menu.sprite.width * cable.menu.sprite.scale * i / (cable.menu.sprite.width + 2), 
+          player.menu.x - 40 - cable.menu.sprite.width * cable.menu.sprite.scale * i / (cable.menu.sprite.width + 2), 
           player.menu.y + 104, 
           cable.menu.sprite.width * cable.menu.sprite.scale, 
           cable.menu.sprite.height * cable.menu.sprite.scale);
       }
 
       // Draw text n stuff
-      writeText(text['title']);
+      writeText(text.menu[0], true);
       
-      //writeText('A game by: Kamil Solecki and Matei Copot', 250, 950, 2);
+      writeText(text.menu[2], true);
 
       if (store.transition.active) {
-        //writeText('Good Luck!', 440, 120, 2);
+        writeText(text.menu[3], true);
 
         const transitionAlpha = 0.05 * store.transition.tick;
         context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
@@ -192,7 +264,7 @@ function animate() {
           store.game.phase = 'tutorial';
         }
       } else {
-        //writeText('Press spacebar to start', 360, 120, 2);
+        writeText(text.menu[1], true);
       }
 
       store.game.tick++;
@@ -204,7 +276,7 @@ function animate() {
       context.fillStyle = 'purple';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      grid.size = [3, 6];
+      store.grid.render();
 
       if (store.transition.active) {
         const transitionAlpha = 1 - 0.05 * store.transition.tick;
@@ -226,17 +298,25 @@ const textContext = textCanvas.getContext('2d');
 const textColorCanvas = document.createElement('canvas');
 const textColorContext = textColorCanvas.getContext('2d');
 
-function writeText(text, color = 'black') {
-  const characterCount = text.duration > 0 ? Math.min(text.value.length, ((text.elapsed / (text.duration / text.value.length)) | 0))
+function writeText(text, persistent, color = 'black') {
+
+  const characterCount = (text.duration) > 0 ? Math.min(text.value.length, (((text.elapsed) / (text.duration / text.value.length)) | 0))
     : text.value.length;
+
+  if (text.delay == 0 || !text.delay) {
+    if (text.elapsed < text.duration + text.holdTime || persistent) {
+      for (let i = 0; i < characterCount; i++) {
+        writeLetter(text.value[i], text.x + i * text.scale * 6, text.y, text.scale, color);
+      }
   
-    console.log(characterCount);
-  if (text.elapsed < text.duration + text.holdTime || text.duration == 0) {
-    for (let i = 0; i < characterCount; i++) {
-      writeLetter(text.value[i], text.x + i * text.scale * 6, text.y, text.scale, color);
+      text.elapsed++;
     }
-  
-    text.elapsed++;
+  }
+
+
+  if (text.delay > 0) {
+    console.log(text.delay);
+    text.delay--;
   }
 }
 
@@ -258,7 +338,7 @@ function writeLetter(letter, x, y, scale, color = 'black') {
     : charcode == 63 ? [60, 62]
     : charcode == 46 ? [65, 62]
     : charcode == 58 ? [70, 62]
-    : charcode > 47 && charcode < 58 ? [(charcode - 48) * 5, 61]
+    : charcode > 47 && charcode < 58 ? [(charcode - 48) * 5, 62]
     : charcode > 64 && charcode < 91 ? [(charcode - 65) * 5 + 1, 53]
     : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
     : [0, 0];
