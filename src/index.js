@@ -41,7 +41,8 @@ class Cell {
   }
 
   render(viewport) {
-    context.drawImage(sprites, 0, 71, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+    const spriteOx = this.y == 0 ? 20 : 0;
+    context.drawImage(sprites, spriteOx, 71, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
   }
 }
 
@@ -91,7 +92,7 @@ class Player {
     this.speed = 4;
     // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
     this.orientation = 0;
-    this.activeAnimation = playerAnimations.walking;
+    this.activeAnimation = playerAnimations.standing;
   }
 
   render() {
@@ -103,6 +104,7 @@ class Player {
 
 const store = {
   lastTime: Date.now(),
+  keys: {},
   grid: new Grid(25),
   player: new Player(500, 300),
   game: {
@@ -188,20 +190,87 @@ const text = {
     duration: 0,
     scale: 2, 
     value: 'Good Luck!'
-  }
-  ],
+  }],
   tutorial: [{
       x: 30,
       y: 30,
       boxWidth: 30,
       elapsed: 0,
-      duration: 50,
+      duration: 100,
       scale: 2,
-      value: 'Welcome to Reconnected!\n\nThis game is about you running\naround and fixing things...\n\nGood luck!',
+      value: 'Welcome to Reconnected!\n\nYou can use arrows to\nmove around.\nPress spacebar to interact with\nthings you encounter.\n\nGood luck!',
     }]
 };
 
-// # EVENT_HOOKS
+const keyset = {
+  // Spacebar
+  32: {
+    press: () => {},
+    hold: () => {},
+    release: () => {
+      if (store.game.phase == 'start') {
+        store.transition.active = true;
+        playerStore.menu.stopX = canvasWidth + 200;
+      }
+    }
+  },
+  // Left Arrow
+  37: {
+    press: () => {},
+    hold: () => {
+      store.player.activeAnimation = playerAnimations.walking;
+      store.player.x -= store.player.speed;
+      if (!(store.keys[38] || store.keys[40])) {
+        store.player.orientation = 2; 
+      }
+    },
+    release: () => {
+      store.player.activeAnimation = playerAnimations.standing;
+    },
+  },
+  // Up Arrow
+  38: {
+    press: () => {
+      store.player.orientation = 0;
+    },
+    hold: () => {
+      store.player.activeAnimation = playerAnimations.walking;
+      store.player.y -= store.player.speed;
+    },
+    release: () => {
+      store.player.activeAnimation = playerAnimations.standing;
+    },
+  },
+  // Right Arrow
+  39: {
+    press: () => {},
+    hold: () => {
+      store.player.activeAnimation = playerAnimations.walking;
+      store.player.x += store.player.speed;
+      if (!(store.keys[38] || store.keys[40])) {
+        store.player.orientation = 3; 
+      }
+    },
+    release: () => {
+      store.player.activeAnimation = playerAnimations.standing;
+    },
+  },
+  // Down Arrow
+  40: {
+    press: () => {
+      store.player.orientation = 1;
+    },
+    hold: () => {
+      store.player.activeAnimation = playerAnimations.walking;
+      store.player.y += store.player.speed;
+    },
+    release: () => {
+      store.player.activeAnimation = playerAnimations.standing;
+    },
+  },
+}
+
+// # EVENT_HOOKS ----------------------------------------------------------
 document.addEventListener('keyup', (event) => {
   if (store.game.phase == 'start') {
     if (event.keyCode == 32) {
@@ -211,37 +280,34 @@ document.addEventListener('keyup', (event) => {
   }
 });
 
-document.addEventListener('keydown', (event) => {
-  if (store.game.phase == 'tutorial') {
-    // Left Arrow
-    if (event.keyCode == 37) {
-      store.player.x -= store.player.speed;
-      //store.grid.viewport.x--;
-    }
-    
-    // Up Arrow
-    if (event.keyCode == 38) {
-      store.player.y -= store.player.speed;
-      store.player.orientation = 0;
-      //store.grid.viewport.y--;
-    }
-
-    // Right arrow
-    if (event.keyCode == 39) {
-      store.player.x += store.player.speed;
-      //store.grid.viewport.x++;
-    }
-
-    // Down arrow
-    if (event.keyCode == 40) {
-      store.player.y += store.player.speed;
-      store.player.orientation = 1;
-      //store.grid.viewport.y++;
-    }
+document.onkeydown = (event) => {
+  const key = (event || window.event).keyCode;
+  if (!(key in keyset)) {
+    return true;
   }
-})
+  if (!(key in store.keys)) {
+    store.keys[key] = true;
+    keyset[key].press();
+    keyset[key].hold();
+  }
+  return false;
+}
 
-// # GAME_INIT
+document.onkeyup = (event) => {
+  const key = (event || window.event).keyCode;
+  if (key in store.keys) {
+    if (store.keys[key]) {
+      keyset[key].release();
+    }
+    delete store.keys[key];
+  }
+}
+
+window.onblur = () => {
+  store.keys = {};
+}
+
+// # GAME_INIT ----------------------------------------------------------
 store.game.phase = 'tutorial';
 
 context.fillStyle = '#b8b8b8';
@@ -250,22 +316,27 @@ context.fillRect(0, 0, canvasWidth, canvasHeight);
 const sprites = new Image();
 sprites.src = '../images/sprites.png';
 
+function selectAnimationFrame(animation) {
+  if (!animation.ticksPerAnimationFrame) {
+    return animation.sequence[store.game.tick % animation.sequence.length];
+  } else {
+    return animation.sequence[((store.game.tick / animation.ticksPerAnimationFrame) % animation.sequence.length) | 0];
+  }
+}
+
 function animate() {
   requestAnimationFrame(animate);
-  
-  function selectAnimationFrame(animation) {
-    if (!animation.ticksPerAnimationFrame) {
-      return animation.sequence[store.game.tick % animation.sequence.length];
-    } else {
-      return animation.sequence[((store.game.tick / animation.ticksPerAnimationFrame) % animation.sequence.length) | 0];
-    }
-  }
 
   const now = Date.now();
   const elapsed = Date.now() - store.lastTime;
-  
+
   if (elapsed > store.game.fpsInterval) {
     store.lastTime = now - (elapsed % store.game.fpsInterval);
+
+    // Run key handlers
+    for (let key in store.keys) {
+      keyset[key].hold();
+    }
 
     // # MENU
     if (store.game.phase == 'start') {
