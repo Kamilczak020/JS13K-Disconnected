@@ -19,7 +19,7 @@ require('../style.css');
 // will be referenced directly by id
 const canvas = document.getElementById('gamearea');
 
-// # GLOBALS
+// # GLOBALS ----------------------------------------------------------
 const context = canvas.getContext('2d');
 const canvasHeight = canvas.height = 1000;
 const canvasWidth = canvas.width = 1000;
@@ -34,32 +34,50 @@ class Viewport {
 }
 
 class Cell {
-  constructor(x, y) {
+  constructor(x, y, size, type) {
     this.x = x;
     this.y = y;
-    this.size = 100;
+    this.size = size;
+    this.type = type;
   }
 
   render(viewport) {
-    const spriteOx = this.y == 0 ? 20 : 0;
-    context.drawImage(sprites, spriteOx, 71, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+    const [spriteOx, spriteOy] = this.type == 'floor' ? [0, 71]
+      : this.type == 'wall' ? [20, 71]
+      : this.type == 'server-top' ? [0, 155]
+      : this.type == 'server-bottom' ? [0, 175]
+      : [20, 71];
+    context.drawImage(sprites, spriteOx, spriteOy, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
   }
 }
 
 class Grid {
-  constructor(size) {
-    this.size = size;
+  constructor(gridSize, cellSize) {
+    this.gridSize = gridSize;
+    this.cellSize = cellSize;
     this.cells = [];
     this.viewport = new Viewport(1000);
 
-    for (let column = 0; column < this.size; column++) {
+    for (let column = 0; column < this.gridSize; column++) {
       this.cells[column] = [];
       
-      for(let row = 0; row < this.size; row++) {
-        this.cells[column][row] = new Cell(column, row);
+      for(let row = 0; row < this.gridSize; row++) {
+        if (row == 0) {
+          this.cells[column][row] = new Cell(column, row, cellSize, 'wall');
+        } else {
+          this.cells[column][row] = new Cell(column, row, cellSize, 'floor');
+        }
       }
     }
+    
+    
+  this.cells[5][0].type = 'server-top';
+  this.cells[5][1].type = 'server-bottom';
   }
+
+  getCellAtPosition(x, y) {
+    return this.cells[((x / this.cellSize) | 0)][((y / this.cellSize) | 0)];
+  } 
 
   render() {
     this.cells.forEach(column => {
@@ -71,6 +89,7 @@ class Grid {
     store.player.render();
   }
 }
+
 const playerAnimations = {
   standing: {
     frame: 0,
@@ -89,10 +108,21 @@ class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.speed = 4;
+    this.speed = 8;
     // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
     this.orientation = 0;
     this.activeAnimation = playerAnimations.standing;
+  }
+
+  moveUp() {
+    const nextCell = store.grid.getCellAtPosition(this.x + 50, this.y - this.speed);
+    if (nextCell.type == 'floor') {
+      this.y -= this.speed;
+    } else {
+      if (this.y - this.speed > nextCell.y * 100 + 50) {
+        this.y -= this.speed;
+      }
+    }
   }
 
   render() {
@@ -105,7 +135,7 @@ class Player {
 const store = {
   lastTime: Date.now(),
   keys: {},
-  grid: new Grid(25),
+  grid: new Grid(25, 100),
   player: new Player(500, 300),
   game: {
     phase: '',
@@ -235,7 +265,7 @@ const keyset = {
     },
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.y -= store.player.speed;
+      store.player.moveUp();
     },
     release: () => {
       store.player.activeAnimation = playerAnimations.standing;
@@ -338,7 +368,7 @@ function animate() {
       keyset[key].hold();
     }
 
-    // # MENU
+    // # MENU ----------------------------------------------------------
     if (store.game.phase == 'start') {
       context.fillStyle = '#b8b8b8';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -402,7 +432,7 @@ function animate() {
       store.game.tick++;
     }
 
-    // # TUTORIAL
+    // # TUTORIAL ----------------------------------------------------------
     if (store.game.phase == 'tutorial') {
       // Background
       context.fillStyle = 'purple';
