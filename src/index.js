@@ -39,15 +39,17 @@ class Cell {
     this.y = y;
     this.size = size;
     this.type = type;
+    this.prop = null;
   }
 
   render(viewport) {
     const [spriteOx, spriteOy] = this.type == 'floor' ? [0, 71]
-      : this.type == 'wall' ? [20, 71]
-      : this.type == 'server-top' ? [0, 155]
-      : this.type == 'server-bottom' ? [0, 175]
       : [20, 71];
+
     context.drawImage(sprites, spriteOx, spriteOy, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+    if (!!this.prop) {
+      context.drawImage(sprites, this.prop.oX, this.prop.oY, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+    }
   }
 }
 
@@ -69,15 +71,26 @@ class Grid {
         }
       }
     }
-    
-    
-  this.cells[5][0].type = 'server-top';
-  this.cells[5][1].type = 'server-bottom';
+
+    this.cells[5][4].prop = gameProps.ServerMachineTop1;
+    this.cells[5][5].prop = gameProps.serverMachineBottom1;
   }
 
   getCellAtPosition(x, y) {
     return this.cells[((x / this.cellSize) | 0)][((y / this.cellSize) | 0)];
-  } 
+  }
+
+  // Currently works for corners only, might be renamed in the future if I wont need actual functionality of range.
+  getCellsInRange(x1, y1, x2, y2) {
+    const cells = [
+      this.getCellAtPosition(x1, y1),
+      this.getCellAtPosition(x1, y2),
+      this.getCellAtPosition(x2, y1),
+      this.getCellAtPosition(x2, y2)
+    ];
+
+    return cells.filter((a, i, c) => c.indexOf(a, i + 1) < 0);
+  }
 
   render() {
     this.cells.forEach(column => {
@@ -87,6 +100,49 @@ class Grid {
     });
 
     store.player.render();
+  }
+}
+
+class Player {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.speed = 8;
+    this.activeAnimation = playerAnimations.standing;
+    
+    // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
+    this.orientation = 0;
+    
+    // Localized
+    this.boundingBox = [0, 11, 14, 16];
+  }
+
+  moveUp() {
+    const globalBoundingBox = [this.x, this.y, this.x, this.y].map((a, i) => a + this.boundingBox[i]);
+    const currentCells = store.grid.getCellsInRange(...globalBoundingBox);
+    const minY = Math.min.apply(Math, currentCells.map(cell => (Math.min(0, cell.y - 1)) * 100));
+    const minX = Math.min.apply(Math, currentCells.map(cell => cell.x * 100));
+    const maxX = Math.max.apply(Math, currentCells.map(cell => cell.x * 100));
+    const possibleCollisionCells = store.grid.getCellsInRange(minX, minY, maxX, minY);
+
+    console.log('current:');
+    console.log(currentCells);
+    console.log('next:');
+    console.log(possibleCollisionCells);
+    possibleCollisionCells.forEach(cell => {
+      if (!!cell.prop) {
+        if(!!cell.prop.boundingBox) {
+          console.log(`Target: ${cell.y} | This: ${this.y}`);
+        }
+      }
+    });
+    this.y -= 5;
+  }
+
+  render() {
+    context.drawImage(sprites, this.activeAnimation.sequence[this.activeAnimation.frame], 91 + 16 * this.orientation, 14, 16, this.x, this.y, 14 * 5, 16 * 5);
+    this.activeAnimation.frame = ((this.activeAnimation.tick / this.activeAnimation.duration) | 0) % this.activeAnimation.sequence.length;
+    this.activeAnimation.tick++;
   }
 }
 
@@ -104,50 +160,20 @@ const playerAnimations = {
     tick: 0,
   }
 }
-class Player {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.speed = 8;
-    // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
-    this.orientation = 0;
-    this.activeAnimation = playerAnimations.standing;
-  }
 
-  moveUp() {
-    const nextCell = store.grid.getCellAtPosition(this.x + 50, this.y - this.speed);
-    if (nextCell.type == 'floor') {
-      this.y -= this.speed;
-    } else {
-      if (this.y - this.speed > nextCell.y * 100 + 50) {
-        this.y -= this.speed;
-      }
-    }
-  }
-
-  render() {
-    context.drawImage(sprites, this.activeAnimation.sequence[this.activeAnimation.frame], 91 + 16 * this.orientation, 14, 16, this.x, this.y, 14 * 5, 16 * 5);
-    this.activeAnimation.frame = ((this.activeAnimation.tick / this.activeAnimation.duration) | 0) % this.activeAnimation.sequence.length;
-    this.activeAnimation.tick++;
+const gameProps = {
+  serverMachineBottom1: {
+    oX: 0,
+    oY: 175,
+    boundingBox: [0, 10, 20, 20],
+  },
+  ServerMachineTop1: {
+    oX: 0,
+    oY: 155,
   }
 }
 
-const store = {
-  lastTime: Date.now(),
-  keys: {},
-  grid: new Grid(25, 100),
-  player: new Player(500, 300),
-  game: {
-    phase: '',
-    tick: 0,
-    fpsInterval: 60,
-  },
-  transition: {
-    active: false,
-    tick: 0,
-  },
-}
-
+// Currently just for the menu, will gonna do something with it later, I don't like it.
 const playerStore = {
   menu: {
     x: 0,
@@ -173,6 +199,8 @@ const playerStore = {
   }
 }
 
+
+// Also menu, also crap
 const cable = {
   menu: {
     sprite: {
@@ -184,6 +212,7 @@ const cable = {
   }
 }
 
+// Will be inlined later on, but its nice to have em together when im still changing things
 const text = {
   menu: [{
     x: 260,
@@ -232,6 +261,23 @@ const text = {
     }]
 };
 
+const store = {
+  lastTime: Date.now(),
+  keys: {},
+  grid: new Grid(25, 100),
+  player: new Player(500, 300),
+  game: {
+    phase: '',
+    tick: 0,
+    fpsInterval: 60,
+  },
+  transition: {
+    active: false,
+    tick: 0,
+  },
+}
+
+// The pure magic of key bindings, will most likely stay as is.
 const keyset = {
   // Spacebar
   32: {
@@ -464,6 +510,7 @@ function animate() {
   }
 }
 
+// # TEXT ----------------------------------------------------------
 const textCanvas = document.createElement('canvas');
 const textContext = textCanvas.getContext('2d');
 const textColorCanvas = document.createElement('canvas');
