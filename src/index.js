@@ -58,6 +58,7 @@ class Grid {
     this.gridSize = gridSize;
     this.cellSize = cellSize;
     this.cells = [];
+    this.collidableCells = [];
     this.viewport = new Viewport(1000);
 
     for (let column = 0; column < this.gridSize; column++) {
@@ -74,6 +75,7 @@ class Grid {
 
     this.cells[5][4].prop = gameProps.ServerMachineTop1;
     this.cells[5][5].prop = gameProps.serverMachineBottom1;
+    this.collidableCells.push(this.cells[5][5]);
   }
 
   getCellAtPosition(x, y) {
@@ -114,29 +116,108 @@ class Player {
     this.orientation = 0;
     
     // Localized
-    this.boundingBox = [0, 11, 14, 16];
+    this.boundingBox = [0, 55, 70, 80];
   }
 
-  moveUp() {
+  // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
+  move(direction) {
     const globalBoundingBox = [this.x, this.y, this.x, this.y].map((a, i) => a + this.boundingBox[i]);
-    const currentCells = store.grid.getCellsInRange(...globalBoundingBox);
-    const minY = Math.min.apply(Math, currentCells.map(cell => (Math.min(0, cell.y - 1)) * 100));
-    const minX = Math.min.apply(Math, currentCells.map(cell => cell.x * 100));
-    const maxX = Math.max.apply(Math, currentCells.map(cell => cell.x * 100));
-    const possibleCollisionCells = store.grid.getCellsInRange(minX, minY, maxX, minY);
 
-    console.log('current:');
-    console.log(currentCells);
-    console.log('next:');
-    console.log(possibleCollisionCells);
-    possibleCollisionCells.forEach(cell => {
-      if (!!cell.prop) {
-        if(!!cell.prop.boundingBox) {
-          console.log(`Target: ${cell.y} | This: ${this.y}`);
+    // UP
+    if (direction == 0) {
+      const cellsAbove = store.grid.collidableCells.filter(cell => {
+        const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+        return globalBoundingBox[0] < cellGlobalBoundingBox[2] && globalBoundingBox[2] > cellGlobalBoundingBox[0] && globalBoundingBox[1] > cellGlobalBoundingBox[3];
+      });
+
+      const cellsGlobalBoundingBoxes = cellsAbove.map(cell => {
+        return  cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+      });
+
+      if (cellsAbove.length != 0) {
+        const maxY = cellsGlobalBoundingBoxes.map(cell => cell[3]).reduce((prev, curr) => {
+          return prev > curr ? prev : curr;
+        });
+
+        for (let i = 0; i < (this.boundingBox[1] + this.y - maxY - 1) && i < 8; i++) {
+          this.y--;
         }
+      } else {
+        this.y -= this.speed;
       }
-    });
-    this.y -= 5;
+    }
+
+    // DOWN
+    if (direction == 1) {
+      const cellsBelow = store.grid.collidableCells.filter(cell => {
+        const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+        return globalBoundingBox[0] < cellGlobalBoundingBox[2] && globalBoundingBox[2] > cellGlobalBoundingBox[0] && globalBoundingBox[3] < cellGlobalBoundingBox[1];
+      });
+
+      const cellsGlobalBoundingBoxes = cellsBelow.map(cell => {
+        return  cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+      });
+
+      if (cellsBelow.length != 0) {
+        const minY = cellsGlobalBoundingBoxes.map(cell => cell[1]).reduce((prev, curr) => {
+          return prev < curr ? prev : curr;
+        });
+
+        for (let i = 0; i < (minY - globalBoundingBox[3] - 1) && i < this.speed; i++) {
+          this.y++;
+        }
+      } else {
+        this.y += this.speed;
+      }
+    }
+    
+    // LEFT
+    if (direction == 2) {
+      const cellsLeft = store.grid.collidableCells.filter(cell => {
+        const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+        return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[0] > cellGlobalBoundingBox[2];
+      });
+
+      const cellsGlobalBoundingBoxes = cellsLeft.map(cell => {
+        return  cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+      });
+
+      if (cellsLeft.length != 0) {
+        const minX = cellsGlobalBoundingBoxes.map(cell => cell[2]).reduce((prev, curr) => {
+          return prev > curr ? prev : curr;
+        });
+
+        for (let i = 0; i < globalBoundingBox[0] - minX - 1 && i < this.speed; i++) {
+          this.x--;
+        }
+      } else {
+        this.x -= this.speed;
+      }
+    }
+
+    // RIGHT
+    if (direction == 3) {
+      const cellsLeft = store.grid.collidableCells.filter(cell => {
+        const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+        return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[2] < cellGlobalBoundingBox[0];
+      });
+
+      const cellsGlobalBoundingBoxes = cellsLeft.map(cell => {
+        return  cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
+      });
+
+      if (cellsLeft.length != 0) {
+        const maxX = cellsGlobalBoundingBoxes.map(cell => cell[0]).reduce((prev, curr) => {
+          return prev > curr ? prev : curr;
+        });
+
+        for (let i = 0; i < maxX - globalBoundingBox[2] - 1 && i < this.speed; i++) {
+          this.x++;
+        }
+      } else {
+        this.x += this.speed;
+      }
+    }
   }
 
   render() {
@@ -295,7 +376,7 @@ const keyset = {
     press: () => {},
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.x -= store.player.speed;
+      store.player.move(2);
       if (!(store.keys[38] || store.keys[40])) {
         store.player.orientation = 2; 
       }
@@ -311,7 +392,7 @@ const keyset = {
     },
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.moveUp();
+      store.player.move(0);
     },
     release: () => {
       store.player.activeAnimation = playerAnimations.standing;
@@ -322,7 +403,7 @@ const keyset = {
     press: () => {},
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.x += store.player.speed;
+      store.player.move(3);
       if (!(store.keys[38] || store.keys[40])) {
         store.player.orientation = 3; 
       }
@@ -338,7 +419,7 @@ const keyset = {
     },
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.y += store.player.speed;
+      store.player.move(1);
     },
     release: () => {
       store.player.activeAnimation = playerAnimations.standing;
