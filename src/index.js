@@ -42,13 +42,18 @@ class Cell {
     this.prop = null;
   }
 
-  render(viewport) {
+  renderBackground(viewport) {
     const [spriteOx, spriteOy] = this.type == 'floor' ? [0, 71]
       : [20, 71];
 
     context.drawImage(sprites, spriteOx, spriteOy, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+  }
+
+  render(viewport) {
     if (!!this.prop) {
+      context.globalAlpha = this.prop.alpha;
       context.drawImage(sprites, this.prop.oX, this.prop.oY, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
+      context.globalAlpha = 1;
     }
   }
 }
@@ -59,6 +64,7 @@ class Grid {
     this.cellSize = cellSize;
     this.cells = [];
     this.collidableCells = [];
+    this.objectRenderStack = [];
     this.viewport = new Viewport(1000);
 
     for (let column = 0; column < this.gridSize; column++) {
@@ -75,7 +81,13 @@ class Grid {
 
     this.cells[5][4].prop = gameProps.ServerMachineTop1;
     this.cells[5][5].prop = gameProps.serverMachineBottom1;
+    this.cells[7][4].prop = gameProps.ServerMachineTop1;
+    this.cells[7][5].prop = gameProps.serverMachineBottom1;
+    this.cells[5][7].prop = gameProps.serverMachineTop1;
+    this.cells[5][8].prop = gameProps.serverMachineBottom1;
     this.collidableCells.push(this.cells[5][5]);
+    this.collidableCells.push(this.cells[7][5]);
+    this.collidableCells.push(this.cells[5][8]);
   }
 
   getCellAtPosition(x, y) {
@@ -95,13 +107,37 @@ class Grid {
   }
 
   render() {
+    this.objectRenderStack = [];
+
     this.cells.forEach(column => {
       column.forEach(cell => {
-        cell.render(this.viewport);
+        cell.renderBackground(this.viewport);
+        
+        if (!!cell.prop) {
+          if (!!cell.prop.compoundCellPosition && cell.prop.compoundCellPosition[1] > 0) {
+            cell.prop.zIndex = cell.y + cell.prop.compoundCellPosition[1];
+          } else {
+            cell.prop.zIndex = cell.y;
+          }
+          this.objectRenderStack.push(cell);
+        }
       });
     });
+    const playerCell = this.getCellAtPosition(store.player.x + store.player.boundingBox[2], store.player.y + store.player.boundingBox[3]);
+    store.player.zIndex = playerCell.y - 1;
 
-    store.player.render();
+    this.objectRenderStack.push(store.player);
+    this.objectRenderStack.sort((a, b) => {
+      if (!!a.zIndex) {
+        return a.zIndex - b.prop.zIndex;
+      } else {
+        return a.prop.zIndex - b.zIndex;
+      }
+    });
+
+    this.objectRenderStack.forEach((object, index) => {
+      object.render(this.viewport);
+    });
   }
 }
 
@@ -110,6 +146,7 @@ class Player {
     this.x = x;
     this.y = y;
     this.speed = 8;
+    this.zIndex = 0;
     this.activeAnimation = playerAnimations.standing;
     
     // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
@@ -207,11 +244,11 @@ class Player {
       });
 
       if (cellsLeft.length != 0) {
-        const maxX = cellsGlobalBoundingBoxes.map(cell => cell[0]).reduce((prev, curr) => {
-          return prev > curr ? prev : curr;
+        const minX = cellsGlobalBoundingBoxes.map(cell => cell[0]).reduce((prev, curr) => {
+          return prev < curr ? prev : curr;
         });
 
-        for (let i = 0; i < maxX - globalBoundingBox[2] - 1 && i < this.speed; i++) {
+        for (let i = 0; i < minX - globalBoundingBox[2] - 1 && i < this.speed; i++) {
           this.x++;
         }
       } else {
@@ -242,15 +279,21 @@ const playerAnimations = {
   }
 }
 
-const gameProps = {
+let gameProps = {
   serverMachineBottom1: {
     oX: 0,
     oY: 175,
     boundingBox: [0, 10, 20, 20],
+    compoundCellPosition: [0, -1],
+    zIndex: 0,
+    alpha: 1,
   },
   ServerMachineTop1: {
     oX: 0,
     oY: 155,
+    compoundCellPosition: [0, 1],
+    zIndex: 0,
+    aplpha: 1,
   }
 }
 
