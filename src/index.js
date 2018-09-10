@@ -137,7 +137,6 @@ class Grid {
       }
     });
     
-    const offsets = [-1, 0, 1];
     this.objectRenderStack.forEach(object => {
       if(object.prop) {
         if(offsets.includes(object.x - playerCell.x) && offsets.includes(object.y - playerCell.y)) {
@@ -487,16 +486,7 @@ const keyset = {
 }
 
 // # EVENT_HOOKS ----------------------------------------------------------
-document.addEventListener('keyup', (event) => {
-  if (store.game.phase == 'start') {
-    if (event.keyCode == 32) {
-      store.transition.active = true;
-      playerStore.menu.stopX = canvasWidth + 200;    
-    }
-  }
-});
-
-document.onkeydown = (event) => {
+window.onkeydown = event => {
   const key = (event || window.event).keyCode;
   if (!(key in keyset)) {
     return true;
@@ -507,9 +497,9 @@ document.onkeydown = (event) => {
     keyset[key].hold();
   }
   return false;
-}
+};
 
-document.onkeyup = (event) => {
+window.onkeyup = event => {
   const key = (event || window.event).keyCode;
   if (key in store.keys) {
     if (store.keys[key]) {
@@ -517,12 +507,10 @@ document.onkeyup = (event) => {
     }
     delete store.keys[key];
   }
-}
+};
 
-window.onblur = () => {
-  store.keys = {};
-}
-
+window.onblur = () => store.keys = {};
+document.onmouseup = e => e.which === 3 ? store.keys = {} : false;
 // # GAME_INIT ----------------------------------------------------------
 store.game.phase = 'tutorial';
 
