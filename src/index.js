@@ -79,9 +79,9 @@ class Grid {
       }
     }
 
-    this.cells[5][4].prop = gameProps.ServerMachineTop1;
+    this.cells[5][4].prop = gameProps.serverMachineTop1;
     this.cells[5][5].prop = gameProps.serverMachineBottom1;
-    this.cells[7][4].prop = gameProps.ServerMachineTop1;
+    this.cells[7][4].prop = gameProps.serverMachineTop1;
     this.cells[7][5].prop = gameProps.serverMachineBottom1;
     this.cells[5][7].prop = gameProps.serverMachineTop1;
     this.cells[5][8].prop = gameProps.serverMachineBottom1;
@@ -119,6 +119,7 @@ class Grid {
           } else {
             cell.prop.zIndex = cell.y;
           }
+          console.log(cell.prop.zIndex);
           this.objectRenderStack.push(cell);
         }
       });
@@ -135,7 +136,7 @@ class Grid {
       }
     });
 
-    this.objectRenderStack.forEach((object, index) => {
+    this.objectRenderStack.forEach(object => {
       object.render(this.viewport);
     });
   }
@@ -279,7 +280,7 @@ const playerAnimations = {
   }
 }
 
-let gameProps = {
+const gameProps = {
   serverMachineBottom1: {
     oX: 0,
     oY: 175,
@@ -288,7 +289,7 @@ let gameProps = {
     zIndex: 0,
     alpha: 1,
   },
-  ServerMachineTop1: {
+  serverMachineTop1: {
     oX: 0,
     oY: 155,
     compoundCellPosition: [0, 1],
