@@ -350,7 +350,7 @@ const store = {
   game: {
     phase: '',
     tick: 0,
-    fpsInterval: 60,
+    fpsInterval: getFps(60),
   },
   transition: {
     active: false,
@@ -486,7 +486,6 @@ function animate() {
 
   const now = Date.now();
   const elapsed = Date.now() - store.lastTime;
-
   if (elapsed > store.game.fpsInterval) {
     store.lastTime = now - (elapsed % store.game.fpsInterval);
 
@@ -549,7 +548,7 @@ function animate() {
 
         if (transitionAlpha == 1) {
           store.transition.tick = 0;
-          store.game.fpsInterval = 20;
+          store.game.fpsInterval = getFps(20);
           store.game.phase = 'tutorial';
         }
       } else {
@@ -589,6 +588,10 @@ function animate() {
       }
     }
   }
+}
+
+function getFps(fps) {
+  return 1000 / fps;
 }
 
 // # TEXT ----------------------------------------------------------
