@@ -79,13 +79,13 @@ class Grid {
       }
     }
 
-    this.cells[5][4].prop = gameProps.serverMachineTop1;
-    this.cells[5][5].prop = gameProps.serverMachineBottom1;
-    this.cells[7][4].prop = gameProps.serverMachineTop1;
-    this.cells[7][5].prop = gameProps.serverMachineBottom1;
-    this.cells[5][7].prop = gameProps.serverMachineTop1;
-    this.cells[5][8].prop = gameProps.serverMachineBottom1;
-    this.collidableCells.push(this.cells[5][5]);
+    this.cells[5][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+    this.cells[5][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+    this.cells[7][4].prop = Object.assign({}, gameProps.serverMachineTop1);
+    this.cells[7][5].prop = Object.assign({}, gameProps.serverMachineBottom1);
+    this.cells[5][7].prop = Object.assign({}, gameProps.serverMachineTop1);
+    this.cells[5][8].prop = Object.assign({}, gameProps.serverMachineBottom1);
+    this.collidableCells.push(this.cells[5][4]);
     this.collidableCells.push(this.cells[7][5]);
     this.collidableCells.push(this.cells[5][8]);
   }
@@ -113,13 +113,12 @@ class Grid {
       column.forEach(cell => {
         cell.renderBackground(this.viewport);
         
-        if (!!cell.prop) {
-          if (!!cell.prop.compoundCellPosition && cell.prop.compoundCellPosition[1] > 0) {
+        if (cell.prop) {
+          if (cell.prop.compoundCellPosition && cell.prop.compoundCellPosition[1] > 0) {
             cell.prop.zIndex = cell.y + cell.prop.compoundCellPosition[1];
           } else {
             cell.prop.zIndex = cell.y;
           }
-          console.log(cell.prop.zIndex);
           this.objectRenderStack.push(cell);
         }
       });
@@ -129,12 +128,16 @@ class Grid {
 
     this.objectRenderStack.push(store.player);
     this.objectRenderStack.sort((a, b) => {
-      if (!!a.zIndex) {
+      if (a.zIndex) {
         return a.zIndex - b.prop.zIndex;
-      } else {
+      } else if(b.zIndex){
         return a.prop.zIndex - b.zIndex;
+      } else {
+        return a.prop.zIndex - b.prop.zIndex;
       }
     });
+    
+console.log(this.objectRenderStack);
 
     this.objectRenderStack.forEach(object => {
       object.render(this.viewport);
