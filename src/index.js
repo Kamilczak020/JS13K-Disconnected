@@ -137,6 +137,7 @@ class Grid {
       }
     });
     
+    const offsets = [-1, 0, 1];
     this.objectRenderStack.forEach(object => {
       if(object.prop) {
         if(offsets.includes(object.x - playerCell.x) && offsets.includes(object.y - playerCell.y)) {
