@@ -136,7 +136,7 @@ class Grid {
         return a.prop.zIndex - b.prop.zIndex;
       }
     });
-    
+
     const offsets = [-1, 0, 1];
     this.objectRenderStack.forEach(object => {
       if(object.prop) {
