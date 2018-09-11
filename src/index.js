@@ -123,7 +123,7 @@ class Grid {
         }
       });
     });
-    const playerCell = this.getCellAtPosition(store.player.x + store.player.boundingBox[2], store.player.y + store.player.boundingBox[3]);
+    const playerCell = store.player.cellInGrid(store.grid);
     store.player.zIndex = playerCell.y - 1;
 
     this.objectRenderStack.push(store.player);
@@ -136,8 +136,16 @@ class Grid {
         return a.prop.zIndex - b.prop.zIndex;
       }
     });
-    
+
+    const offsets = [-1, 0, 1];
     this.objectRenderStack.forEach(object => {
+      if(object.prop) {
+        if(offsets.includes(object.x - playerCell.x) && offsets.includes(object.y - playerCell.y)) {
+          object.prop.alpha = 0.5;
+        } else {
+          object.prop.alpha = object.prop.defaultAlpha;
+        }
+      }
       object.render(this.viewport);
     });
   }
@@ -156,6 +164,10 @@ class Player {
     
     // Localized
     this.boundingBox = [0, 55, 70, 80];
+  }
+
+  cellInGrid() {
+    return store.grid.getCellAtPosition(this.x + this.boundingBox[2], this.y + this.boundingBox[3]);
   }
 
   // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
@@ -179,9 +191,11 @@ class Player {
         });
 
         for (let i = 0; i < (this.boundingBox[1] + this.y - maxY - 1) && i < 8; i++) {
-          this.y--;
+          if (this.y > 100) {
+            this.y--;
+          }
         }
-      } else {
+      } else if (this.y > 100) {
         this.y -= this.speed;
       }
     }
@@ -203,9 +217,11 @@ class Player {
         });
 
         for (let i = 0; i < (minY - globalBoundingBox[3] - 1) && i < this.speed; i++) {
-          this.y++;
+          if (this.y < store.grid.gridSize * store.grid.cellSize) {
+            this.y++;
+          }
         }
-      } else {
+      } else if (this.y < store.grid.gridSize * store.grid.cellSize) {
         this.y += this.speed;
       }
     }
@@ -227,9 +243,11 @@ class Player {
         });
 
         for (let i = 0; i < globalBoundingBox[0] - minX - 1 && i < this.speed; i++) {
-          this.x--;
+          if (this.x > 0) {
+            this.x--;
+          }
         }
-      } else {
+      } else if (this.x > this.speed) {
         this.x -= this.speed;
       }
     }
@@ -251,9 +269,11 @@ class Player {
         });
 
         for (let i = 0; i < minX - globalBoundingBox[2] - 1 && i < this.speed; i++) {
-          this.x++;
+          if (this.x < store.grid.gridSize * store.grid.cellSize) {
+            this.x++;
+          }
         }
-      } else {
+      } else if (this.x < store.grid.gridSize * store.grid.cellSize) {
         this.x += this.speed;
       }
     }
@@ -289,6 +309,7 @@ const gameProps = {
     compoundCellPosition: [0, -1],
     zIndex: 0,
     alpha: 1,
+    defaultAlpha: 1
   },
   serverMachineTop1: {
     oX: 0,
@@ -296,6 +317,7 @@ const gameProps = {
     compoundCellPosition: [0, 1],
     zIndex: 0,
     aplpha: 1,
+    defaultAlpha: 1
   }
 }
 
@@ -473,16 +495,7 @@ const keyset = {
 }
 
 // # EVENT_HOOKS ----------------------------------------------------------
-document.addEventListener('keyup', (event) => {
-  if (store.game.phase == 'start') {
-    if (event.keyCode == 32) {
-      store.transition.active = true;
-      playerStore.menu.stopX = canvasWidth + 200;    
-    }
-  }
-});
-
-document.onkeydown = (event) => {
+window.onkeydown = event => {
   const key = (event || window.event).keyCode;
   if (!(key in keyset)) {
     return true;
@@ -493,9 +506,9 @@ document.onkeydown = (event) => {
     keyset[key].hold();
   }
   return false;
-}
+};
 
-document.onkeyup = (event) => {
+window.onkeyup = event => {
   const key = (event || window.event).keyCode;
   if (key in store.keys) {
     if (store.keys[key]) {
@@ -503,12 +516,10 @@ document.onkeyup = (event) => {
     }
     delete store.keys[key];
   }
-}
+};
 
-window.onblur = () => {
-  store.keys = {};
-}
-
+window.onblur = () => store.keys = {};
+document.onmouseup = e => e.which === 3 ? store.keys = {} : false;
 // # GAME_INIT ----------------------------------------------------------
 store.game.phase = 'tutorial';
 
