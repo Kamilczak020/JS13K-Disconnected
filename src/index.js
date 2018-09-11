@@ -128,9 +128,9 @@ class Grid {
 
     this.objectRenderStack.push(store.player);
     this.objectRenderStack.sort((a, b) => {
-      if (a.zIndex) {
+      if (a.zIndex !== undefined) {
         return a.zIndex - b.prop.zIndex;
-      } else if(b.zIndex){
+      } else if(b.zIndex !== undefined){
         return a.prop.zIndex - b.zIndex;
       } else {
         return a.prop.zIndex - b.prop.zIndex;
