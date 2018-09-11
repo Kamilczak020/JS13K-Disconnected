@@ -4,8 +4,8 @@ A JS13K Competition Entry Game. Absolute Work-in-progress.
 ## TODO, or in other words, the gameplan.
  - [X] Implement custom text coloring
  - [ ] Do story / dialogues
- - [ ] Develop game board / grid, plan out movement (fluid / rigid to grid)
- - [ ] Create game phase sprites
+ - [X] Develop game board / grid, plan out movement (fluid / rigid to grid)
+ - [X] Create game phase sprites
  - [ ] Implement base game mechanics
  - [ ] Create tutorial
  - [ ] Create level builder 

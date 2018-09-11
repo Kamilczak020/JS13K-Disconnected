@@ -81,13 +81,13 @@ class Grid {
 
     this.cells[5][3].prop = Object.assign({}, gameProps.serverMachineTop1);
     this.cells[5][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-    this.cells[7][4].prop = Object.assign({}, gameProps.serverMachineTop1);
-    this.cells[7][5].prop = Object.assign({}, gameProps.serverMachineBottom1);
-    this.cells[5][7].prop = Object.assign({}, gameProps.serverMachineTop1);
-    this.cells[5][8].prop = Object.assign({}, gameProps.serverMachineBottom1);
+    this.cells[6][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+    this.cells[6][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+    this.cells[7][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+    this.cells[7][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
     this.collidableCells.push(this.cells[5][4]);
-    this.collidableCells.push(this.cells[7][5]);
-    this.collidableCells.push(this.cells[5][8]);
+    this.collidableCells.push(this.cells[6][4]);
+    this.collidableCells.push(this.cells[7][4]);
   }
 
   getCellAtPosition(x, y) {
@@ -123,7 +123,7 @@ class Grid {
         }
       });
     });
-    const playerCell = store.player.cellInGrid(store.grid);
+    const playerCell = store.player.cellInGrid();
     store.player.zIndex = playerCell.y - 1;
 
     this.objectRenderStack.push(store.player);
@@ -190,12 +190,12 @@ class Player {
           return prev > curr ? prev : curr;
         });
 
-        for (let i = 0; i < (this.boundingBox[1] + this.y - maxY - 1) && i < 8; i++) {
-          if (this.y > 100) {
+        for (let i = 0; i < (this.boundingBox[1] + this.y - maxY - 1) && i < this.speed; i++) {
+          if (this.y > 50) {
             this.y--;
           }
         }
-      } else if (this.y > 100) {
+      } else if (this.y > 50) {
         this.y -= this.speed;
       }
     }
