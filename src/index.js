@@ -191,9 +191,11 @@ class Player {
         });
 
         for (let i = 0; i < (this.boundingBox[1] + this.y - maxY - 1) && i < 8; i++) {
-          this.y--;
+          if (this.y > 100) {
+            this.y--;
+          }
         }
-      } else {
+      } else if (this.y > 100) {
         this.y -= this.speed;
       }
     }
@@ -215,9 +217,11 @@ class Player {
         });
 
         for (let i = 0; i < (minY - globalBoundingBox[3] - 1) && i < this.speed; i++) {
-          this.y++;
+          if (this.y < store.grid.gridSize * store.grid.cellSize) {
+            this.y++;
+          }
         }
-      } else {
+      } else if (this.y < store.grid.gridSize * store.grid.cellSize) {
         this.y += this.speed;
       }
     }
@@ -239,9 +243,11 @@ class Player {
         });
 
         for (let i = 0; i < globalBoundingBox[0] - minX - 1 && i < this.speed; i++) {
-          this.x--;
+          if (this.x > 0) {
+            this.x--;
+          }
         }
-      } else {
+      } else if (this.x > this.speed) {
         this.x -= this.speed;
       }
     }
@@ -263,9 +269,11 @@ class Player {
         });
 
         for (let i = 0; i < minX - globalBoundingBox[2] - 1 && i < this.speed; i++) {
-          this.x++;
+          if (this.x < store.grid.gridSize * store.grid.cellSize) {
+            this.x++;
+          }
         }
-      } else {
+      } else if (this.x < store.grid.gridSize * store.grid.cellSize) {
         this.x += this.speed;
       }
     }
