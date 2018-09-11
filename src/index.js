@@ -123,7 +123,7 @@ class Grid {
         }
       });
     });
-    const playerCell = this.getCellAtPosition(store.player.x + store.player.boundingBox[2], store.player.y + store.player.boundingBox[3]);
+    const playerCell = store.player.cellInGrid(store.grid);
     store.player.zIndex = playerCell.y - 1;
 
     this.objectRenderStack.push(store.player);
@@ -136,8 +136,16 @@ class Grid {
         return a.prop.zIndex - b.prop.zIndex;
       }
     });
-    
+
+    const offsets = [-1, 0, 1];
     this.objectRenderStack.forEach(object => {
+      if(object.prop) {
+        if(offsets.includes(object.x - playerCell.x) && offsets.includes(object.y - playerCell.y)) {
+          object.prop.alpha = 0.5;
+        } else {
+          object.prop.alpha = object.prop.defaultAlpha;
+        }
+      }
       object.render(this.viewport);
     });
   }
@@ -156,6 +164,10 @@ class Player {
     
     // Localized
     this.boundingBox = [0, 55, 70, 80];
+  }
+
+  cellInGrid() {
+    return store.grid.getCellAtPosition(this.x + this.boundingBox[2], this.y + this.boundingBox[3]);
   }
 
   // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
@@ -289,6 +301,7 @@ const gameProps = {
     compoundCellPosition: [0, -1],
     zIndex: 0,
     alpha: 1,
+    defaultAlpha: 1
   },
   serverMachineTop1: {
     oX: 0,
@@ -296,6 +309,7 @@ const gameProps = {
     compoundCellPosition: [0, 1],
     zIndex: 0,
     aplpha: 1,
+    defaultAlpha: 1
   }
 }
 
