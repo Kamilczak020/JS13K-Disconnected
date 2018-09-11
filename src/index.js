@@ -114,7 +114,7 @@ class Grid {
         cell.renderBackground(this.viewport);
         
         if (cell.prop) {
-          if (cell.prop.compoundCellPosition && cell.prop.compoundCellPosition[1] > 0) {
+          if (cell.prop.isCompound && !cell.prop.isCompoundBase) {
             cell.prop.zIndex = cell.y + cell.prop.compoundCellPosition[1];
           } else {
             cell.prop.zIndex = cell.y;
@@ -123,6 +123,7 @@ class Grid {
         }
       });
     });
+    
     const playerCell = store.player.cellInGrid();
     store.player.zIndex = playerCell.y - 1;
 
@@ -140,7 +141,8 @@ class Grid {
     const offsets = [-1, 0, 1];
     this.objectRenderStack.forEach(object => {
       if(object.prop) {
-        if(offsets.includes(object.x - playerCell.x) && offsets.includes(object.y - playerCell.y)) {
+        const objectY = object.prop.isCompound && !object.prop.isCompoundBase ? object.y + object.prop.compoundCellPosition[1] - playerCell.y : object.y - playerCell.y;
+        if (offsets.includes(object.x - playerCell.x) && offsets.includes(objectY) && object.prop.zIndex > store.player.zIndex) {
           object.prop.alpha = 0.5;
         } else {
           object.prop.alpha = object.prop.defaultAlpha;
@@ -306,6 +308,8 @@ const gameProps = {
     oX: 0,
     oY: 175,
     boundingBox: [0, 10, 20, 20],
+    isCompound: true,
+    isCompoundBase: true,
     compoundCellPosition: [0, -1],
     zIndex: 0,
     alpha: 1,
@@ -314,6 +318,8 @@ const gameProps = {
   serverMachineTop1: {
     oX: 0,
     oY: 155,
+    isCompound: true,
+    isCompoundBase: false,
     compoundCellPosition: [0, 1],
     zIndex: 0,
     aplpha: 1,
