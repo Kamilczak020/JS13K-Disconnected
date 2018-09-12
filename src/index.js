@@ -85,9 +85,12 @@ class Grid {
     this.cells[6][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
     this.cells[7][3].prop = Object.assign({}, gameProps.serverMachineTop1);
     this.cells[7][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+    this.cells[5][1].prop = Object.assign({}, gameProps.cableHook);
+    this.cells[5][9].prop = Object.assign({}, gameProps.wallPlugIn);
     this.collidableCells.push(this.cells[5][4]);
     this.collidableCells.push(this.cells[6][4]);
     this.collidableCells.push(this.cells[7][4]);
+    this.collidableCells.push(this.cells[5][9]);
   }
 
   getCellAtPosition(x, y) {
@@ -114,12 +117,16 @@ class Grid {
         cell.renderBackground(this.viewport);
         
         if (cell.prop) {
-          if (cell.prop.isCompound && !cell.prop.isCompoundBase) {
-            cell.prop.zIndex = cell.y + cell.prop.compoundCellPosition[1];
+          if (cell.prop.zIndex == -1) {
+            cell.render(this.viewport);
           } else {
-            cell.prop.zIndex = cell.y;
-          }
-          this.objectRenderStack.push(cell);
+            if (cell.prop.isCompound && !cell.prop.isCompoundBase) {
+              cell.prop.zIndex = cell.y + cell.prop.compoundCellPosition[1];
+            } else {
+              cell.prop.zIndex = cell.y;
+            }
+            this.objectRenderStack.push(cell);
+          }       
         }
       });
     });
@@ -150,6 +157,10 @@ class Grid {
       }
       object.render(this.viewport);
     });
+
+    if (store.player.cable) {
+      store.player.cable.render(); 
+    }
   }
 }
 
@@ -159,6 +170,7 @@ class Player {
     this.y = y;
     this.speed = 8;
     this.zIndex = 0;
+    this.cable;
     this.activeAnimation = playerAnimations.standing;
     
     // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
@@ -223,7 +235,7 @@ class Player {
             this.y++;
           }
         }
-      } else if (this.y < store.grid.gridSize * store.grid.cellSize) {
+      } else if (this.y < store.grid.gridSize * store.grid.cellSize - 90) {
         this.y += this.speed;
       }
     }
@@ -256,16 +268,16 @@ class Player {
 
     // RIGHT
     if (direction == 3) {
-      const cellsLeft = store.grid.collidableCells.filter(cell => {
+      const cellsRight = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[2] < cellGlobalBoundingBox[0];
       });
 
-      const cellsGlobalBoundingBoxes = cellsLeft.map(cell => {
+      const cellsGlobalBoundingBoxes = cellsRight.map(cell => {
         return  cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
       });
 
-      if (cellsLeft.length != 0) {
+      if (cellsRight.length != 0) {
         const minX = cellsGlobalBoundingBoxes.map(cell => cell[0]).reduce((prev, curr) => {
           return prev < curr ? prev : curr;
         });
@@ -275,7 +287,7 @@ class Player {
             this.x++;
           }
         }
-      } else if (this.x < store.grid.gridSize * store.grid.cellSize) {
+      } else if (this.x < store.grid.gridSize * store.grid.cellSize - 76) {
         this.x += this.speed;
       }
     }
@@ -285,6 +297,31 @@ class Player {
     context.drawImage(sprites, this.activeAnimation.sequence[this.activeAnimation.frame], 91 + 16 * this.orientation, 14, 16, this.x, this.y, 14 * 5, 16 * 5);
     this.activeAnimation.frame = ((this.activeAnimation.tick / this.activeAnimation.duration) | 0) % this.activeAnimation.sequence.length;
     this.activeAnimation.tick++;
+  }
+}
+
+class Cable {
+  constructor(start, color) {
+    this.start = start;
+    this.color = color;
+    this.isPickedUp = false;
+    this.points = [];
+  }
+
+  render() {
+    context.beginPath();
+    context.moveTo(this.start[0], this.start[1]);
+    
+    this.points.forEach(point => {
+      context.lineTo(point[0], point[1]);
+    });
+
+    if (this.isPickedUp) {
+      context.lineTo(store.player.x + 10, store.player.y + 50);
+    }
+
+    context.strokeStyle = this.color;
+    context.stroke();
   }
 }
 
@@ -313,7 +350,8 @@ const gameProps = {
     compoundCellPosition: [0, -1],
     zIndex: 0,
     alpha: 1,
-    defaultAlpha: 1
+    defaultAlpha: 1,
+    type: 'static',
   },
   serverMachineTop1: {
     oX: 0,
@@ -323,7 +361,41 @@ const gameProps = {
     compoundCellPosition: [0, 1],
     zIndex: 0,
     aplpha: 1,
-    defaultAlpha: 1
+    defaultAlpha: 1,
+    type: 'static',
+  },
+  cableHook: {
+    oX: 0,
+    oY: 195,
+    isCompound: false,
+    zIndex: -1,
+    alpha: 1,
+    defaultAlpha: 1,
+    type: 'hook',
+  },
+  wallPlugIn: {
+    oX: 20,
+    oY: 195,
+    boundingBox: [0, 9, 20, 20],
+    isCompound: false,
+    zIndex: -1,
+    alpha: 1,
+    defaultAlpha: 1,
+    color: '#ae3030',
+    type: 'plugIn',
+    orientation: 0,
+  }, 
+  wallPlugOut: {
+    oX: 40,
+    oY: 195,
+    boundingBox: [0, 12, 20, 20],
+    isCompound: false,
+    zIndex: -1,
+    alpha: 1,
+    defaultAlpha: 1,
+    color: '#ae3030',
+    type: 'plugOut',
+    orientation: 0,
   }
 }
 
@@ -409,7 +481,7 @@ const text = {
       y: 30,
       boxWidth: 30,
       elapsed: 0,
-      duration: 100,
+      duration: 200,
       scale: 2,
       value: 'Welcome to Reconnected!\n\nYou can use arrows to\nmove around.\nPress spacebar to interact with\nthings you encounter.\n\nGood luck!',
     }]
@@ -418,8 +490,9 @@ const text = {
 const store = {
   lastTime: Date.now(),
   keys: {},
-  grid: new Grid(25, 100),
+  grid: new Grid(10, 100),
   player: new Player(500, 300),
+  cables: [],
   game: {
     phase: '',
     tick: 0,
@@ -435,7 +508,77 @@ const store = {
 const keyset = {
   // Spacebar
   32: {
-    press: () => {},
+    press: () => {
+      if (store.game.phase == 'tutorial') {
+        const playerCell = store.player.cellInGrid();
+        const offsetsX = [-1, 0, 1];
+        const offsetsY = [-1, 0, 1];
+
+        if (store.player.orientation == 0) {
+          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x][playerCell.y - 1]];
+          cells.forEach(cell => {
+            if (cell !== undefined && cell.prop) {
+              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
+                cell.prop = Object.assign({}, gameProps.wallPlugOut);
+                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
+                cable.isPickedUp = true;
+                
+                store.player.cable = cable;
+                store.cables.push(cable);
+              }
+            }
+          });
+        }
+
+        if (store.player.orientation == 1) {
+          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x][playerCell.y + 1]];
+          cells.forEach(cell => {
+            if (cell !== undefined && cell.prop) {
+              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
+                cell.prop = Object.assign({}, gameProps.wallPlugOut);
+                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
+                cable.isPickedUp = true;
+                
+                store.player.cable = cable;
+                store.cables.push(cable);
+              }
+            }
+          });
+        }
+
+        if (store.player.orientation == 2) {
+          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x - 1][playerCell.y]];
+          cells.forEach(cell => {
+            if (cell !== undefined && cell.prop) {
+              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
+                cell.prop = Object.assign({}, gameProps.wallPlugOut);
+                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
+                cable.isPickedUp = true;
+                
+                store.player.cable = cable;
+                store.cables.push(cable);
+              }
+            }
+          });
+        }
+      }
+
+      if (store.player.orientation == 3) {
+        const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x + 1][playerCell.y]];
+        cells.forEach(cell => {
+          if (cell !== undefined && cell.prop) {
+            if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
+              cell.prop = Object.assign({}, gameProps.wallPlugOut);
+              const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
+              cable.isPickedUp = true;
+              
+              store.player.cable = cable;
+              store.cables.push(cable);
+            }
+          }
+        });
+      }
+    },
     hold: () => {},
     release: () => {
       if (store.game.phase == 'start') {
