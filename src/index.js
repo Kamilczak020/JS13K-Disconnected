@@ -26,10 +26,23 @@ const canvasWidth = canvas.width = 1000;
 context.imageSmoothingEnabled = false;
 
 class Viewport {
-  constructor(size) {
+  constructor(size, panThreshold = 200) {
     this.size = size;
     this.x = 0;
     this.y = 0;
+    this.panThreshold = panThreshold;
+  }
+
+  pan(direction) {
+    if(direction === 0) {
+      this.y += 10;
+    } else if(direction === 1) {
+      this.y -= 10;
+    } else if(direction === 2) {
+      this.x -= 10;
+    } else if(direction === 3) {
+      this.x += 10;
+    }
   }
 }
 
@@ -550,9 +563,13 @@ const keyset = {
     press: () => {},
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.move(2);
       if (!(store.keys[38] || store.keys[40])) {
         store.player.orientation = 2; 
+      }
+      if(store.player.x <= store.grid.viewport.panThreshold) {
+        store.grid.viewport.pan(2);
+      } else {
+        store.player.move(2);
       }
     },
     release: () => {
@@ -566,7 +583,11 @@ const keyset = {
     },
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.move(0);
+      if(store.player.y >= store.grid.viewport.size - store.grid.viewport.panThreshold) {
+        store.grid.viewport.pan(0);
+      } else {
+        store.player.move(0);
+      }
     },
     release: () => {
       store.player.activeAnimation = playerAnimations.standing;
@@ -577,9 +598,13 @@ const keyset = {
     press: () => {},
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.move(3);
       if (!(store.keys[38] || store.keys[40])) {
         store.player.orientation = 3; 
+      }
+      if(store.player.x >= store.grid.viewport.size - store.grid.viewport.panThreshold) {
+        store.grid.viewport.pan(3);
+      } else {
+        store.player.move(3);
       }
     },
     release: () => {
@@ -593,7 +618,11 @@ const keyset = {
     },
     hold: () => {
       store.player.activeAnimation = playerAnimations.walking;
-      store.player.move(1);
+      if(store.player.y <= store.grid.viewport.panThreshold) {
+        store.grid.viewport.pan(1);
+      } else {
+        store.player.move(1);
+      }
     },
     release: () => {
       store.player.activeAnimation = playerAnimations.standing;
