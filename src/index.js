@@ -56,7 +56,7 @@ class Cell {
   }
 
   renderBackground(viewport) {
-    const [spriteOx, spriteOy] = this.type == 'floor' ? [0, 71]
+    const [spriteOx, spriteOy] = this.type === 'floor' ? [0, 71]
       : [20, 71];
 
     context.drawImage(sprites, spriteOx, spriteOy, 20, 20, (this.x * this.size) - viewport.x, (this.y * this.size) - viewport.y, this.size, this.size);
@@ -84,7 +84,7 @@ class Grid {
       this.cells[column] = [];
       
       for(let row = 0; row < this.gridSize; row++) {
-        if (row == 0) {
+        if (row === 0) {
           this.cells[column][row] = new Cell(column, row, cellSize, 'wall');
         } else {
           this.cells[column][row] = new Cell(column, row, cellSize, 'floor');
@@ -130,7 +130,7 @@ class Grid {
         cell.renderBackground(this.viewport);
         
         if (cell.prop) {
-          if (cell.prop.zIndex == -1) {
+          if (cell.prop.zIndex === -1) {
             cell.render(this.viewport);
           } else {
             if (cell.prop.isCompound && !cell.prop.isCompoundBase) {
@@ -202,7 +202,7 @@ class Player {
     const globalBoundingBox = [this.x, this.y, this.x, this.y].map((a, i) => a + this.boundingBox[i]);
 
     // UP
-    if (direction == 0) {
+    if (direction === 0) {
       const cellsAbove = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[0] < cellGlobalBoundingBox[2] && globalBoundingBox[2] > cellGlobalBoundingBox[0] && globalBoundingBox[1] > cellGlobalBoundingBox[3];
@@ -228,7 +228,7 @@ class Player {
     }
 
     // DOWN
-    if (direction == 1) {
+    if (direction === 1) {
       const cellsBelow = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[0] < cellGlobalBoundingBox[2] && globalBoundingBox[2] > cellGlobalBoundingBox[0] && globalBoundingBox[3] < cellGlobalBoundingBox[1];
@@ -254,7 +254,7 @@ class Player {
     }
     
     // LEFT
-    if (direction == 2) {
+    if (direction === 2) {
       const cellsLeft = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[0] > cellGlobalBoundingBox[2];
@@ -280,7 +280,7 @@ class Player {
     }
 
     // RIGHT
-    if (direction == 3) {
+    if (direction === 3) {
       const cellsRight = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[2] < cellGlobalBoundingBox[0];
@@ -522,7 +522,7 @@ const keyset = {
   // Spacebar
   32: {
     press: () => {
-      if (store.game.phase == 'tutorial') {
+      if (store.game.phase === 'tutorial') {
         const playerCell = store.player.cellInGrid();
         const offsetsX = [-1, 0, 1];
         const offsetsY = [-1, 0, 1];
@@ -537,7 +537,7 @@ const keyset = {
         const cells = [store.grid.cells[playerCell.x][playerCell.y], cell[store.player.orientation]];
         cells.forEach(cell => {
           if (cell !== undefined && cell.prop) {
-            if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
+            if (cell.prop.type === 'plugIn' && !store.player.hasPlug) {
               cell.prop = Object.assign({}, gameProps.wallPlugOut);
               const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
               cable.isPickedUp = true;
@@ -552,7 +552,7 @@ const keyset = {
     },
     hold: () => {},
     release: () => {
-      if (store.game.phase == 'start') {
+      if (store.game.phase === 'start') {
         store.transition.active = true;
         playerStore.menu.stopX = canvasWidth + 200;
       }
@@ -687,7 +687,7 @@ function animate() {
     }
 
     // # MENU ----------------------------------------------------------
-    if (store.game.phase == 'start') {
+    if (store.game.phase === 'start') {
       context.fillStyle = '#b8b8b8';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -738,7 +738,7 @@ function animate() {
 
         store.transition.tick++;
 
-        if (transitionAlpha == 1) {
+        if (transitionAlpha === 1) {
           store.transition.tick = 0;
           store.game.fpsInterval = getFps(20);
           store.game.phase = 'tutorial';
@@ -751,7 +751,7 @@ function animate() {
     }
 
     // # TUTORIAL ----------------------------------------------------------
-    if (store.game.phase == 'tutorial') {
+    if (store.game.phase === 'tutorial') {
       // Background
       context.fillStyle = 'purple';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -774,7 +774,7 @@ function animate() {
 
         store.transition.tick++;
 
-        if (transitionAlpha == 0) {
+        if (transitionAlpha === 0) {
           store.transition.active = false;
         }
       }
@@ -798,10 +798,10 @@ function writeText(text, persistent, color = 'black') {
 
   let lineNumber = 0;  
   let lastNewline = 0;
-  if (text.delay == 0 || !text.delay) {
+  if (text.delay === 0 || !text.delay) {
     if (text.elapsed < text.duration + text.holdTime || persistent) {
       for (let i = 0; i < characterCount; i++) {
-        if (text.value.charCodeAt(i) == 10) {
+        if (text.value.charCodeAt(i) === 10) {
           lineNumber++;
           lastNewline = i + 1;
         }
@@ -831,11 +831,11 @@ function writeLetter(letter, x, y, scale, color = 'black') {
 
   const charcode = letter.charCodeAt(0);
   const [spriteOx, spriteOy] =
-      charcode == 33 ? [50, 62]
-    : charcode == 35 ? [55, 62]
-    : charcode == 63 ? [60, 62]
-    : charcode == 46 ? [65, 62]
-    : charcode == 58 ? [70, 62]
+      charcode === 33 ? [50, 62]
+    : charcode === 35 ? [55, 62]
+    : charcode === 63 ? [60, 62]
+    : charcode === 46 ? [65, 62]
+    : charcode === 58 ? [70, 62]
     : charcode > 47 && charcode < 58 ? [(charcode - 48) * 5, 62]
     : charcode > 64 && charcode < 91 ? [(charcode - 65) * 5 + 1, 53]
     : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
