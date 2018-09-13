@@ -1,16 +1,16 @@
 # JS13K-Disconnected
 A JS13K Competition Entry Game. Absolute Work-in-progress.
 
+## Big Tank to Cerel the Canadian person you can find him here: 
+https://github.com/HorizonShadow
+
 ## TODO, or in other words, the gameplan.
  - [X] Implement custom text coloring
- - [ ] Do story / dialogues
  - [X] Develop game board / grid, plan out movement (fluid / rigid to grid)
  - [X] Create game phase sprites
- - [ ] Implement base game mechanics
- - [ ] Create tutorial
- - [ ] Create level builder 
- - [ ] Implement score, scoreboard, timer?
- - [ ] Golf it! (into separate file plz)
+ - [X] Implement base game mechanics
+ - [X] Create tutorial
+ - [X] Golf it! (into separate file plz)
 
 ## Storytime!
 You know that feeling, when you are sitting in front of your PC (ok, just for the sake of peace of mind) or console,
