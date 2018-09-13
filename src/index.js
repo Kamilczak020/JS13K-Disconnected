@@ -580,13 +580,13 @@ const cable = {
 // Will be inlined later on, but its nice to have em together when im still changing things
 const text = {
   end: {
-    x: 200,
-    y: 400,
+    x: 150,
+    y: 500,
     boxWidth: 50,
     duration: 0,
     holdTime: 0,
     elapsed: 0,
-    scale: 13,
+    scale: 7,
     value: 'Thanks for playing!',
   },
   menu: [{
@@ -1045,6 +1045,7 @@ function animate() {
       context.fillStyle = '#2b75a0';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
 
+      writeText(text.end, true);
     }
 
     if (store.game.phase == 'game') {
