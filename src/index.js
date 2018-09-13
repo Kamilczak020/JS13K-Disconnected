@@ -78,19 +78,6 @@ class Grid {
         }
       }
     }
-
-    this.cells[5][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-    this.cells[5][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-    this.cells[6][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-    this.cells[6][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-    this.cells[7][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-    this.cells[7][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-    this.cells[5][1].prop = Object.assign({}, gameProps.cableHook);
-    this.cells[5][9].prop = Object.assign({}, gameProps.wallPlugIn);
-    this.collidableCells.push(this.cells[5][4]);
-    this.collidableCells.push(this.cells[6][4]);
-    this.collidableCells.push(this.cells[7][4]);
-    this.collidableCells.push(this.cells[5][9]);
   }
 
   getCellAtPosition(x, y) {
@@ -161,6 +148,17 @@ class Grid {
     if (store.player.cable) {
       store.player.cable.render(); 
     }
+
+    if (store.cables.length !== 0) {
+      store.cables.forEach(cable => {
+        cable.render();
+      });
+    }
+
+    if (store.game.blackout) {
+      context.fillStyle = 'rgba(0, 0, 0, 0.95)';
+      context.fillRect(0, 0, canvasHeight, canvasWidth);
+    }
   }
 }
 
@@ -168,9 +166,9 @@ class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.speed = 8;
+    this.speed = 5;
     this.zIndex = 0;
-    this.cable;
+    this.cable = undefined;
     this.activeAnimation = playerAnimations.standing;
     
     // 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
@@ -190,6 +188,10 @@ class Player {
 
     // UP
     if (direction == 0) {
+      if (this.cable !== undefined && this.cable.disabledAxis == 0) {
+        return;
+      }
+
       const cellsAbove = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[0] < cellGlobalBoundingBox[2] && globalBoundingBox[2] > cellGlobalBoundingBox[0] && globalBoundingBox[1] > cellGlobalBoundingBox[3];
@@ -216,6 +218,10 @@ class Player {
 
     // DOWN
     if (direction == 1) {
+      if (this.cable !== undefined && this.cable.disabledAxis == 0) {
+        return;
+      }
+
       const cellsBelow = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[0] < cellGlobalBoundingBox[2] && globalBoundingBox[2] > cellGlobalBoundingBox[0] && globalBoundingBox[3] < cellGlobalBoundingBox[1];
@@ -242,6 +248,10 @@ class Player {
     
     // LEFT
     if (direction == 2) {
+      if (this.cable !== undefined && this.cable.disabledAxis == 1) {
+        return;
+      }
+
       const cellsLeft = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[0] > cellGlobalBoundingBox[2];
@@ -268,6 +278,10 @@ class Player {
 
     // RIGHT
     if (direction == 3) {
+      if (this.cable !== undefined && this.cable.disabledAxis == 1) {
+        return;
+      }
+
       const cellsRight = store.grid.collidableCells.filter(cell => {
         const cellGlobalBoundingBox = cell.prop.boundingBox.map((a, i) => a * 5 + [cell.x, cell.y][i % 2] * cell.size);
         return globalBoundingBox[1] < cellGlobalBoundingBox[3] && globalBoundingBox[3] > cellGlobalBoundingBox[1] && globalBoundingBox[2] < cellGlobalBoundingBox[0];
@@ -304,6 +318,8 @@ class Cable {
   constructor(start, color) {
     this.start = start;
     this.color = color;
+    // 0 - x, 1 - y
+    this.disabledAxis = 0;
     this.isPickedUp = false;
     this.points = [];
   }
@@ -334,13 +350,13 @@ const playerAnimations = {
   },
   walking: {
     frame: 0,
-    duration: 2,
+    duration: 4,
     sequence: [14, 0, 28, 0],
     tick: 0,
   }
 }
 
-const gameProps = {
+let gameProps = {
   serverMachineBottom1: {
     oX: 0,
     oY: 175,
@@ -366,15 +382,26 @@ const gameProps = {
   },
   cableHook: {
     oX: 0,
-    oY: 195,
+    oY: 276,
     isCompound: false,
     zIndex: -1,
     alpha: 1,
     defaultAlpha: 1,
     type: 'hook',
+    connected: false,
   },
-  wallPlugIn: {
+  powerSwitch: {
     oX: 20,
+    oY: 276,
+    boundingBox: [0, 10, 20, 20],
+    isCompound: false,
+    zIndex: -1,
+    alpha: 1,
+    defaultAlpha: 1,
+    type: 'switch',
+  },
+  wallPlugIn0: {
+    oX: 0,
     oY: 195,
     boundingBox: [0, 9, 20, 20],
     isCompound: false,
@@ -385,8 +412,8 @@ const gameProps = {
     type: 'plugIn',
     orientation: 0,
   }, 
-  wallPlugOut: {
-    oX: 40,
+  wallPlugOut0: {
+    oX: 20,
     oY: 195,
     boundingBox: [0, 12, 20, 20],
     isCompound: false,
@@ -396,8 +423,107 @@ const gameProps = {
     color: '#ae3030',
     type: 'plugOut',
     orientation: 0,
-  }
+  },
+  wallSocketOut0: {
+    oX: 40,
+    oY: 195,
+    boundingBox: [0, 12, 20, 20],
+    isCompound: false,
+    zIndex: -1,
+    alpha: 1,
+    defaultAlpha: 1,
+    color: '#ae3030',
+    type: 'socketOut',
+    orientation: 0,
+  },
+  wallSocketIn0: {
+    oX: 60,
+    oY: 195,
+    boundingBox: [0, 12, 20, 20],
+    isCompound: false,
+    zIndex: -1,
+    alpha: 1,
+    defaultAlpha: 1,
+    color: '#ae3030',
+    type: 'socketIn',
+    orientation: 0,
+  },
 }
+
+// DOWN
+gameProps.wallPlugIn1 = Object.assign({}, gameProps.wallPlugIn0, {
+  oY: 235,
+  boundingBox: [0, 0, 20, 8],
+  orientation: 1,
+});
+
+gameProps.wallPlugOut1 = Object.assign({}, gameProps.wallPlugOut0, {
+  oY: 235,
+  boundingBox: [0, 0, 20, 8],
+  orientation: 1,
+});
+
+gameProps.wallSocketOut1 = Object.assign({}, gameProps.wallSocketOut0, {
+  oY: 235,
+  boundingBox: [0, 0, 20, 8],
+  orientation: 1,
+});
+
+gameProps.wallSocketIn1 = Object.assign({}, gameProps.wallSocketIn0, {
+  oY: 235,
+  boundingBox: [0, 0, 20, 8],
+  orientation: 1,
+});
+
+// LEFT
+gameProps.wallPlugIn2 = Object.assign({}, gameProps.wallPlugIn0, {
+  oY: 215,
+  boundingBox: [0, 0, 8, 20],
+  orientation: 1,
+});
+
+gameProps.wallPlugOut2 = Object.assign({}, gameProps.wallPlugOut0, {
+  oY: 215,
+  boundingBox: [0, 0, 8, 20],
+  orientation: 1,
+});
+
+gameProps.wallSocketOut2 = Object.assign({}, gameProps.wallSocketOut0, {
+  oY: 215,
+  boundingBox: [0, 0, 8, 20],
+  orientation: 1,
+});
+
+gameProps.wallSocketIn2 = Object.assign({}, gameProps.wallSocketIn0, {
+  oY: 215,
+  boundingBox: [0, 0, 8, 20],
+  orientation: 1,
+});
+
+// RIGHT
+gameProps.wallPlugIn3 = Object.assign({}, gameProps.wallPlugIn0, {
+  oY: 245,
+  boundingBox: [8, 0, 20, 20],
+  orientation: 1,
+});
+
+gameProps.wallPlugOut3 = Object.assign({}, gameProps.wallPlugOut0, {
+  oY: 245,
+  boundingBox: [8, 0, 20, 20],
+  orientation: 1,
+});
+
+gameProps.wallSocketOut3 = Object.assign({}, gameProps.wallSocketOut0, {
+  oY: 245,
+  boundingBox: [8, 0, 20, 20],
+  orientation: 1,
+});
+
+gameProps.wallSocketIn3 = Object.assign({}, gameProps.wallSocketIn0, {
+  oY: 245,
+  boundingBox: [8, 0, 20, 20],
+  orientation: 1,
+});
 
 // Currently just for the menu, will gonna do something with it later, I don't like it.
 const playerStore = {
@@ -405,20 +531,20 @@ const playerStore = {
     x: 0,
     y: 410,
     stopX: canvasWidth - 200,
-    speed: 8,
+    speed: 3,
     animations: {
       walking: {
         width: 34,
         height: 40,
         scale: 5,
-        ticksPerAnimationFrame: 2,
+        ticksPerAnimationFrame: 8,
         sequence: [2, 3, 4, 3],
       },
       standing: {
        width: 34, 
        height: 40,
        scale: 5,
-       ticksPerAnimationFrame: 4,
+       ticksPerAnimationFrame: 12,
        sequence: [0, 1, 2, 1],
       }
     }
@@ -481,9 +607,11 @@ const text = {
       y: 30,
       boxWidth: 30,
       elapsed: 0,
-      duration: 200,
+      duration: 500,
       scale: 2,
-      value: 'Welcome to Reconnected!\n\nYou can use arrows to\nmove around.\nPress spacebar to interact with\nthings you encounter.\n\nGood luck!',
+      value: `Welcome to Reconnected!\n\nYou can use arrows to\nmove around.\nPress spacebar to interact with\nthings you encounter.\n\nSee those wireframey things?\n
+Those are ceiling hooks.\nYou can use them to turn your\ncable 90 degrees!\n\nUse them to get the plugs to\nthe sockets.\nBut remember!\nThey are color coded, so you
+need to plan them accordingly!\n\n\nJust a tip: cables cannot cross\nand you can only use\nthe same hook once!\n\nWhen you are finished placing\ncables: pull the power switch.\n\n\nGood luck and have fun!`,
     }]
 };
 
@@ -497,6 +625,7 @@ const store = {
     phase: '',
     tick: 0,
     fpsInterval: getFps(60),
+    blackout: false,
   },
   transition: {
     active: false,
@@ -509,74 +638,67 @@ const keyset = {
   // Spacebar
   32: {
     press: () => {
-      if (store.game.phase == 'tutorial') {
-        const playerCell = store.player.cellInGrid();
-        const offsetsX = [-1, 0, 1];
-        const offsetsY = [-1, 0, 1];
-
-        if (store.player.orientation == 0) {
-          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x][playerCell.y - 1]];
-          cells.forEach(cell => {
-            if (cell !== undefined && cell.prop) {
-              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-                cell.prop = Object.assign({}, gameProps.wallPlugOut);
-                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-                cable.isPickedUp = true;
-                
-                store.player.cable = cable;
-                store.cables.push(cable);
-              }
-            }
-          });
-        }
-
-        if (store.player.orientation == 1) {
-          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x][playerCell.y + 1]];
-          cells.forEach(cell => {
-            if (cell !== undefined && cell.prop) {
-              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-                cell.prop = Object.assign({}, gameProps.wallPlugOut);
-                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-                cable.isPickedUp = true;
-                
-                store.player.cable = cable;
-                store.cables.push(cable);
-              }
-            }
-          });
-        }
-
-        if (store.player.orientation == 2) {
-          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x - 1][playerCell.y]];
-          cells.forEach(cell => {
-            if (cell !== undefined && cell.prop) {
-              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-                cell.prop = Object.assign({}, gameProps.wallPlugOut);
-                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-                cable.isPickedUp = true;
-                
-                store.player.cable = cable;
-                store.cables.push(cable);
-              }
-            }
-          });
-        }
+      if (store.game.phase == 'menu') {
+        store.transition.active = true;
       }
 
-      if (store.player.orientation == 3) {
-        const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x + 1][playerCell.y]];
-        cells.forEach(cell => {
-          if (cell !== undefined && cell.prop) {
-            if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-              cell.prop = Object.assign({}, gameProps.wallPlugOut);
-              const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-              cable.isPickedUp = true;
-              
-              store.player.cable = cable;
-              store.cables.push(cable);
+      if (store.game.phase == 'tutorial') {
+        const cell = store.grid.cells[((store.player.x + store.player.boundingBox[2] / 2) / store.grid.cellSize) | 0][((store.player.y + store.player.boundingBox[3] / 2) / store.grid.cellSize) | 0];
+
+        if (cell !== undefined && cell.prop) {
+          if (cell.prop.type == 'plugIn' && store.player.cable == undefined) {
+            cell.prop = Object.assign({}, gameProps.wallPlugOut0);
+            const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
+            cable.isPickedUp = true;
+            cable.disabledAxis = cell.prop.orientation = 0 || 1 ? 1 : 0;
+
+            store.player.cable = cable;
+          }
+
+          if (cell.prop.type == 'hook' && store.player.cable !== undefined) {
+            if (!cell.prop.connected) {
+              store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 45]);
+              store.player.cable.disabledAxis = store.player.cable.disabledAxis == 0 ? 1 : 0;
+              cell.prop.connected = true;
+            } else {
+              store.player.cable.points.splice(store.player.cable.points.indexOf([cell.x * cell.size + 50, cell.y * cell.size + 45]), 1);
+              store.player.cable.disabledAxis = store.player.cable.disabledAxis == 0 ? 1 : 0;
+              cell.prop.connected = false;
             }
           }
-        });
+          
+          if (cell.prop.type == 'socketOut' && store.player.cable !== undefined) {
+            cell.prop = Object.assign({}, gameProps.wallSocketIn1);
+            
+            if (cell.prop.orientation == 1) {
+              store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 70]);
+            } else {
+              store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 45]);
+            }
+            
+            store.player.cable.isPickedUp = false;
+            store.cables.push(store.player.cable);
+            store.player.cable = undefined;
+          }
+
+          if (cell.prop.type == 'switch') {
+            let isComplete = true;
+            store.grid.cells.forEach(column => {
+              column.forEach(cell => {
+                if (cell.prop && cell.prop.type == 'socketOut') {
+
+                  isComplete = false;
+                } 
+              });
+            });
+
+            if (isComplete) {
+              store.game.blackout = false;
+            } else {
+              store.game.blackout = true;
+            }
+          }
+        }
       }
     },
     hold: () => {},
@@ -670,7 +792,7 @@ window.onkeyup = event => {
 window.onblur = () => store.keys = {};
 document.onmouseup = e => e.which === 3 ? store.keys = {} : false;
 // # GAME_INIT ----------------------------------------------------------
-store.game.phase = 'tutorial';
+store.game.phase = 'menu';
 
 context.fillStyle = '#b8b8b8';
 context.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -700,7 +822,7 @@ function animate() {
     }
 
     // # MENU ----------------------------------------------------------
-    if (store.game.phase == 'start') {
+    if (store.game.phase == 'menu') {
       context.fillStyle = '#b8b8b8';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -753,7 +875,30 @@ function animate() {
 
         if (transitionAlpha == 1) {
           store.transition.tick = 0;
-          store.game.fpsInterval = getFps(20);
+          store.game.fpsInterval = getFps(60);
+
+          store.grid = new Grid(10, 100);
+          store.grid.cells[5][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[5][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[6][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[6][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[7][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[7][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[8][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[8][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[5][6].prop = Object.assign({}, gameProps.cableHook);
+          store.grid.cells[9][6].prop = Object.assign({}, gameProps.cableHook);
+          store.grid.cells[5][9].prop = Object.assign({}, gameProps.wallPlugIn0);
+          store.grid.cells[9][0].prop = Object.assign({}, gameProps.wallSocketOut1);
+          store.grid.cells[7][9].prop = Object.assign({}, gameProps.powerSwitch);
+          store.grid.collidableCells.push(store.grid.cells[5][4]);
+          store.grid.collidableCells.push(store.grid.cells[6][4]);
+          store.grid.collidableCells.push(store.grid.cells[7][4]);
+          store.grid.collidableCells.push(store.grid.cells[8][4]);
+          store.grid.collidableCells.push(store.grid.cells[5][9]);
+          store.grid.collidableCells.push(store.grid.cells[9][0]);
+          store.grid.collidableCells.push(store.grid.cells[7][9]);
+
           store.game.phase = 'tutorial';
         }
       } else {
@@ -834,13 +979,7 @@ function writeText(text, persistent, color = 'black') {
 function writeLetter(letter, x, y, scale, color = 'black') {
   const textWidth = textCanvas.width = textColorCanvas.width = 6 * scale;
   const textHeight = textCanvas.height = textColorCanvas.height = 9 * scale;
-  
-  textColorContext.imageSmoothingEnabled = false;
-  textContext.imageSmoothingEnabled = false;
-  
-  textColorContext.fillStyle = color;
-  textColorContext.fillRect(0, 0, textWidth, textHeight);
-  textColorContext.globalCompositeOperation = 'destination-in';
+
 
   const charcode = letter.charCodeAt(0);
   const [spriteOx, spriteOy] =
@@ -854,10 +993,545 @@ function writeLetter(letter, x, y, scale, color = 'black') {
     : charcode > 96 && charcode < 123 ? [(charcode - 97) * 5 + 1, 44]
     : [0, 0];
 
-  textContext.drawImage(sprites, spriteOx, spriteOy, 5, 9, 0, 0, 5 * scale, 9 * scale);
-  textColorContext.drawImage(textCanvas, 0, 0);
-  context.drawImage(textColorCanvas, x, y);
+  context.drawImage(sprites, spriteOx, spriteOy, 5, 9, x, y, 5 * scale, 9 * scale);
 }
 
+var CPlayer = function() {
+
+  //--------------------------------------------------------------------------
+  // Private methods
+  //--------------------------------------------------------------------------
+
+  // Oscillators
+  var osc_sin = function (value) {
+      return Math.sin(value * 6.283184);
+  };
+
+  var osc_saw = function (value) {
+      return 2 * (value % 1) - 1;
+  };
+
+  var osc_square = function (value) {
+      return (value % 1) < 0.5 ? 1 : -1;
+  };
+
+  var osc_tri = function (value) {
+      var v2 = (value % 1) * 4;
+      if(v2 < 2) return v2 - 1;
+      return 3 - v2;
+  };
+
+  var getnotefreq = function (n) {
+      // 174.61.. / 44100 = 0.003959503758 (F3)
+      return 0.003959503758 * Math.pow(2, (n - 128) / 12);
+  };
+
+  var createNote = function (instr, n, rowLen) {
+      var osc1 = mOscillators[instr.i[0]],
+          o1vol = instr.i[1],
+          o1xenv = instr.i[3],
+          osc2 = mOscillators[instr.i[4]],
+          o2vol = instr.i[5],
+          o2xenv = instr.i[8],
+          noiseVol = instr.i[9],
+          attack = instr.i[10] * instr.i[10] * 4,
+          sustain = instr.i[11] * instr.i[11] * 4,
+          release = instr.i[12] * instr.i[12] * 4,
+          releaseInv = 1 / release,
+          arp = instr.i[13],
+          arpInterval = rowLen * Math.pow(2, 2 - instr.i[14]);
+
+      var noteBuf = new Int32Array(attack + sustain + release);
+
+      // Re-trig oscillators
+      var c1 = 0, c2 = 0;
+
+      // Local variables.
+      var j, j2, e, t, rsample, o1t, o2t;
+
+      // Generate one note (attack + sustain + release)
+      for (j = 0, j2 = 0; j < attack + sustain + release; j++, j2++) {
+          if (j2 >= 0) {
+              // Switch arpeggio note.
+              arp = (arp >> 8) | ((arp & 255) << 4);
+              j2 -= arpInterval;
+
+              // Calculate note frequencies for the oscillators
+              o1t = getnotefreq(n + (arp & 15) + instr.i[2] - 128);
+              o2t = getnotefreq(n + (arp & 15) + instr.i[6] - 128) * (1 + 0.0008 * instr.i[7]);
+          }
+
+          // Envelope
+          e = 1;
+          if (j < attack) {
+              e = j / attack;
+          } else if (j >= attack + sustain) {
+              e -= (j - attack - sustain) * releaseInv;
+          }
+
+          // Oscillator 1
+          t = o1t;
+          if (o1xenv) {
+              t *= e * e;
+          }
+          c1 += t;
+          rsample = osc1(c1) * o1vol;
+
+          // Oscillator 2
+          t = o2t;
+          if (o2xenv) {
+              t *= e * e;
+          }
+          c2 += t;
+          rsample += osc2(c2) * o2vol;
+
+          // Noise oscillator
+          if (noiseVol) {
+              rsample += (2 * Math.random() - 1) * noiseVol;
+          }
+
+          // Add to (mono) channel buffer
+          noteBuf[j] = (80 * rsample * e) | 0;
+      }
+
+      return noteBuf;
+  };
+
+
+  //--------------------------------------------------------------------------
+  // Private members
+  //--------------------------------------------------------------------------
+
+  // Array of oscillator functions
+  var mOscillators = [
+      osc_sin,
+      osc_square,
+      osc_saw,
+      osc_tri
+  ];
+
+  // Private variables set up by init()
+  var mSong, mLastRow, mCurrentCol, mNumWords, mMixBuf;
+
+
+  //--------------------------------------------------------------------------
+  // Initialization
+  //--------------------------------------------------------------------------
+
+  this.init = function (song) {
+      // Define the song
+      mSong = song;
+
+      // Init iteration state variables
+      mLastRow = song.endPattern;
+      mCurrentCol = 0;
+
+      // Prepare song info
+      mNumWords =  song.rowLen * song.patternLen * (mLastRow + 1) * 2;
+
+      // Create work buffer (initially cleared)
+      mMixBuf = new Int32Array(mNumWords);
+  };
+
+
+  //--------------------------------------------------------------------------
+  // Public methods
+  //--------------------------------------------------------------------------
+
+  // Generate audio data for a single track
+  this.generate = function () {
+      // Local variables
+      var i, j, b, p, row, col, n, cp,
+          k, t, lfor, e, x, rsample, rowStartSample, f, da;
+
+      // Put performance critical items in local variables
+      var chnBuf = new Int32Array(mNumWords),
+          instr = mSong.songData[mCurrentCol],
+          rowLen = mSong.rowLen,
+          patternLen = mSong.patternLen;
+
+      // Clear effect state
+      var low = 0, band = 0, high;
+      var lsample, filterActive = false;
+
+      // Clear note cache.
+      var noteCache = [];
+
+       // Patterns
+       for (p = 0; p <= mLastRow; ++p) {
+          cp = instr.p[p];
+
+          // Pattern rows
+          for (row = 0; row < patternLen; ++row) {
+              // Execute effect command.
+              var cmdNo = cp ? instr.c[cp - 1].f[row] : 0;
+              if (cmdNo) {
+                  instr.i[cmdNo - 1] = instr.c[cp - 1].f[row + patternLen] || 0;
+
+                  // Clear the note cache since the instrument has changed.
+                  if (cmdNo < 16) {
+                      noteCache = [];
+                  }
+              }
+
+              // Put performance critical instrument properties in local variables
+              var oscLFO = mOscillators[instr.i[15]],
+                  lfoAmt = instr.i[16] / 512,
+                  lfoFreq = Math.pow(2, instr.i[17] - 9) / rowLen,
+                  fxLFO = instr.i[18],
+                  fxFilter = instr.i[19],
+                  fxFreq = instr.i[20] * 43.23529 * 3.141592 / 44100,
+                  q = 1 - instr.i[21] / 255,
+                  dist = instr.i[22] * 1e-5,
+                  drive = instr.i[23] / 32,
+                  panAmt = instr.i[24] / 512,
+                  panFreq = 6.283184 * Math.pow(2, instr.i[25] - 9) / rowLen,
+                  dlyAmt = instr.i[26] / 255,
+                  dly = instr.i[27] * rowLen & ~1;  // Must be an even number
+
+              // Calculate start sample number for this row in the pattern
+              rowStartSample = (p * patternLen + row) * rowLen;
+
+              // Generate notes for this pattern row
+              for (col = 0; col < 4; ++col) {
+                  n = cp ? instr.c[cp - 1].n[row + col * patternLen] : 0;
+                  if (n) {
+                      if (!noteCache[n]) {
+                          noteCache[n] = createNote(instr, n, rowLen);
+                      }
+
+                      // Copy note from the note cache
+                      var noteBuf = noteCache[n];
+                      for (j = 0, i = rowStartSample * 2; j < noteBuf.length; j++, i += 2) {
+                        chnBuf[i] += noteBuf[j];
+                      }
+                  }
+              }
+
+              // Perform effects for this pattern row
+              for (j = 0; j < rowLen; j++) {
+                  // Dry mono-sample
+                  k = (rowStartSample + j) * 2;
+                  rsample = chnBuf[k];
+
+                  // We only do effects if we have some sound input
+                  if (rsample || filterActive) {
+                      // State variable filter
+                      f = fxFreq;
+                      if (fxLFO) {
+                          f *= oscLFO(lfoFreq * k) * lfoAmt + 0.5;
+                      }
+                      f = 1.5 * Math.sin(f);
+                      low += f * band;
+                      high = q * (rsample - band) - low;
+                      band += f * high;
+                      rsample = fxFilter == 3 ? band : fxFilter == 1 ? high : low;
+
+                      // Distortion
+                      if (dist) {
+                          rsample *= dist;
+                          rsample = rsample < 1 ? rsample > -1 ? osc_sin(rsample*.25) : -1 : 1;
+                          rsample /= dist;
+                      }
+
+                      // Drive
+                      rsample *= drive;
+
+                      // Is the filter active (i.e. still audiable)?
+                      filterActive = rsample * rsample > 1e-5;
+
+                      // Panning
+                      t = Math.sin(panFreq * k) * panAmt + 0.5;
+                      lsample = rsample * (1 - t);
+                      rsample *= t;
+                  } else {
+                      lsample = 0;
+                  }
+
+                  // Delay is always done, since it does not need sound input
+                  if (k >= dly) {
+                      // Left channel = left + right[-p] * t
+                      lsample += chnBuf[k-dly+1] * dlyAmt;
+
+                      // Right channel = right + left[-p] * t
+                      rsample += chnBuf[k-dly] * dlyAmt;
+                  }
+
+                  // Store in stereo channel buffer (needed for the delay effect)
+                  chnBuf[k] = lsample | 0;
+                  chnBuf[k+1] = rsample | 0;
+
+                  // ...and add to stereo mix buffer
+                  mMixBuf[k] += lsample | 0;
+                  mMixBuf[k+1] += rsample | 0;
+              }
+          }
+      }
+
+      // Next iteration. Return progress (1.0 == done!).
+      mCurrentCol++;
+      return mCurrentCol / mSong.numChannels;
+  };
+
+  // Create a WAVE formatted Uint8Array from the generated audio data
+  this.createWave = function() {
+      // Create WAVE header
+      var headerLen = 44;
+      var l1 = headerLen + mNumWords * 2 - 8;
+      var l2 = l1 - 36;
+      var wave = new Uint8Array(headerLen + mNumWords * 2);
+      wave.set(
+          [82,73,70,70,
+           l1 & 255,(l1 >> 8) & 255,(l1 >> 16) & 255,(l1 >> 24) & 255,
+           87,65,86,69,102,109,116,32,16,0,0,0,1,0,2,0,
+           68,172,0,0,16,177,2,0,4,0,16,0,100,97,116,97,
+           l2 & 255,(l2 >> 8) & 255,(l2 >> 16) & 255,(l2 >> 24) & 255]
+      );
+
+      // Append actual wave data
+      for (var i = 0, idx = headerLen; i < mNumWords; ++i) {
+          // Note: We clamp here
+          var y = mMixBuf[i];
+          y = y < -32767 ? -32767 : (y > 32767 ? 32767 : y);
+          wave[idx++] = y & 255;
+          wave[idx++] = (y >> 8) & 255;
+      }
+
+      // Return the WAVE formatted typed array
+      return wave;
+  };
+
+  // Get n samples of wave data at time t [s]. Wave data in range [-2,2].
+  this.getData = function(t, n) {
+      var i = 2 * Math.floor(t * 44100);
+      var d = new Array(n);
+      for (var j = 0; j < 2*n; j += 1) {
+          var k = i + j;
+          d[j] = t > 0 && k < mMixBuf.length ? mMixBuf[k] / 32768 : 0;
+      }
+      return d;
+  };
+};
+
+// This music has been exported by SoundBox. You can use it with
+// http://sb.bitsnbites.eu/player-small.js in your own product.
+
+// See http://sb.bitsnbites.eu/demo.html for an example of how to
+// use it in a demo.
+
+// Song data
+var song = {
+  songData: [
+    { // Instrument 0
+      i: [
+      3, // OSC1_WAVEFORM
+      194, // OSC1_VOL
+      128, // OSC1_SEMI
+      0, // OSC1_XENV
+      2, // OSC2_WAVEFORM
+      198, // OSC2_VOL
+      128, // OSC2_SEMI
+      6, // OSC2_DETUNE
+      0, // OSC2_XENV
+      0, // NOISE_VOL
+      12, // ENV_ATTACK
+      100, // ENV_SUSTAIN
+      33, // ENV_RELEASE
+      0, // ARP_CHORD
+      0, // ARP_SPEED
+      0, // LFO_WAVEFORM
+      93, // LFO_AMT
+      4, // LFO_FREQ
+      1, // LFO_FX_FREQ
+      2, // FX_FILTER
+      109, // FX_FREQ
+      86, // FX_RESONANCE
+      0, // FX_DIST
+      32, // FX_DRIVE
+      112, // FX_PAN_AMT
+      3, // FX_PAN_FREQ
+      61, // FX_DELAY_AMT
+      2 // FX_DELAY_TIME
+      ],
+      // Patterns
+      p: [2,2,2,2,2,2,2,2,6,6,6,6,6,6,6,6,6,2,2,2,2],
+      // Columns
+      c: [
+        {n: [],
+          f: []},
+        {n: [,125,,,,149,,,147,,,,149,,,,142,,,,144,,142,,144,,147],
+          f: [,12,,,12,,,12,,,,12,,,,,,,,,12,,,,,,,,,,,,,48,,,39,,,41,,,,39,,,,,,,,,33]},
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [,125,,125,,149,149,,147,147,,,149,149,,,142,,142,,144,144,142,142,144,144,147,147],
+          f: []}
+      ]
+    },
+    { // Instrument 1
+      i: [
+      0, // OSC1_WAVEFORM
+      255, // OSC1_VOL
+      138, // OSC1_SEMI
+      1, // OSC1_XENV
+      0, // OSC2_WAVEFORM
+      255, // OSC2_VOL
+      92, // OSC2_SEMI
+      0, // OSC2_DETUNE
+      1, // OSC2_XENV
+      14, // NOISE_VOL
+      4, // ENV_ATTACK
+      6, // ENV_SUSTAIN
+      45, // ENV_RELEASE
+      0, // ARP_CHORD
+      0, // ARP_SPEED
+      0, // LFO_WAVEFORM
+      0, // LFO_AMT
+      0, // LFO_FREQ
+      0, // LFO_FX_FREQ
+      2, // FX_FILTER
+      9, // FX_FREQ
+      81, // FX_RESONANCE
+      0, // FX_DIST
+      45, // FX_DRIVE
+      88, // FX_PAN_AMT
+      0, // FX_PAN_FREQ
+      31, // FX_DELAY_AMT
+      1 // FX_DELAY_TIME
+      ],
+      // Patterns
+      p: [,,,,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+      // Columns
+      c: [
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [,125,,,,,,,,135,,,,,,,,125,,,,,,,,135],
+          f: []}
+      ]
+    },
+    { // Instrument 2
+      i: [
+      3, // OSC1_WAVEFORM
+      100, // OSC1_VOL
+      128, // OSC1_SEMI
+      0, // OSC1_XENV
+      3, // OSC2_WAVEFORM
+      201, // OSC2_VOL
+      128, // OSC2_SEMI
+      2, // OSC2_DETUNE
+      0, // OSC2_XENV
+      0, // NOISE_VOL
+      0, // ENV_ATTACK
+      6, // ENV_SUSTAIN
+      49, // ENV_RELEASE
+      0, // ARP_CHORD
+      0, // ARP_SPEED
+      0, // LFO_WAVEFORM
+      139, // LFO_AMT
+      4, // LFO_FREQ
+      1, // LFO_FX_FREQ
+      3, // FX_FILTER
+      30, // FX_FREQ
+      184, // FX_RESONANCE
+      119, // FX_DIST
+      27, // FX_DRIVE
+      147, // FX_PAN_AMT
+      6, // FX_PAN_FREQ
+      0, // FX_DELAY_AMT
+      6 // FX_DELAY_TIME
+      ],
+      // Patterns
+      p: [,,,,,,,,4,4,4,4,4,4,4,4,4],
+      // Columns
+      c: [
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [,149,,,,149,,,,149,,,,149,,,,149,,,,149,,,,149,,,,149],
+          f: []}
+      ]
+    },
+    { // Instrument 3
+      i: [
+      2, // OSC1_WAVEFORM
+      100, // OSC1_VOL
+      128, // OSC1_SEMI
+      0, // OSC1_XENV
+      3, // OSC2_WAVEFORM
+      201, // OSC2_VOL
+      128, // OSC2_SEMI
+      0, // OSC2_DETUNE
+      0, // OSC2_XENV
+      0, // NOISE_VOL
+      76, // ENV_ATTACK
+      6, // ENV_SUSTAIN
+      58, // ENV_RELEASE
+      0, // ARP_CHORD
+      0, // ARP_SPEED
+      0, // LFO_WAVEFORM
+      195, // LFO_AMT
+      6, // LFO_FREQ
+      1, // LFO_FX_FREQ
+      3, // FX_FILTER
+      1, // FX_FREQ
+      141, // FX_RESONANCE
+      34, // FX_DIST
+      95, // FX_DRIVE
+      43, // FX_PAN_AMT
+      2, // FX_PAN_FREQ
+      121, // FX_DELAY_AMT
+      6 // FX_DELAY_TIME
+      ],
+      // Patterns
+      p: [,,,,,,,,5,5,5,5,5,5,5,5,5],
+      // Columns
+      c: [
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [],
+          f: []},
+        {n: [,152,,152,,152,,152,,152,,152,,152,,152,,152,,152,,152,,152,,152,,152,,152,,152],
+          f: []}
+      ]
+    },
+  ],
+  rowLen: 4410,   // In sample lengths
+  patternLen: 32,  // Rows per pattern
+  endPattern: 20,  // End pattern
+  numChannels: 4  // Number of channels
+};
+
 // Run after resources have loaded
-sprites.onload = () => animate();
+sprites.onload = () => {
+  const player = new CPlayer();
+  player.init(song);
+  var done = false;
+
+  done = player.generate() >= 1;
+  setInterval(() => {
+    if (done) {
+      return;
+    }
+  });
+
+  if (done) {
+    var wave = player.createWave();
+    var audio = document.createElement("audio");
+    audio.src = URL.createObjectURL(new Blob([wave], {type: "audio/wav"}));
+    audio.play();
+  }
+
+  animate();
+}
