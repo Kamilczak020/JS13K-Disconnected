@@ -514,57 +514,14 @@ const keyset = {
         const offsetsX = [-1, 0, 1];
         const offsetsY = [-1, 0, 1];
 
-        if (store.player.orientation == 0) {
-          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x][playerCell.y - 1]];
-          cells.forEach(cell => {
-            if (cell !== undefined && cell.prop) {
-              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-                cell.prop = Object.assign({}, gameProps.wallPlugOut);
-                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-                cable.isPickedUp = true;
-                
-                store.player.cable = cable;
-                store.cables.push(cable);
-              }
-            }
-          });
-        }
+        const cell = {
+          0: store.grid.cells[playerCell.x][playerCell.y - 1],
+          1: store.grid.cells[playerCell.x][playerCell.y + 1],
+          2: store.grid.cells[playerCell.x - 1][playerCell.y],
+          3: store.grid.cells[playerCell.x + 1][playerCell.y]
+        };
 
-        if (store.player.orientation == 1) {
-          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x][playerCell.y + 1]];
-          cells.forEach(cell => {
-            if (cell !== undefined && cell.prop) {
-              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-                cell.prop = Object.assign({}, gameProps.wallPlugOut);
-                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-                cable.isPickedUp = true;
-                
-                store.player.cable = cable;
-                store.cables.push(cable);
-              }
-            }
-          });
-        }
-
-        if (store.player.orientation == 2) {
-          const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x - 1][playerCell.y]];
-          cells.forEach(cell => {
-            if (cell !== undefined && cell.prop) {
-              if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
-                cell.prop = Object.assign({}, gameProps.wallPlugOut);
-                const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
-                cable.isPickedUp = true;
-                
-                store.player.cable = cable;
-                store.cables.push(cable);
-              }
-            }
-          });
-        }
-      }
-
-      if (store.player.orientation == 3) {
-        const cells = [store.grid.cells[playerCell.x][playerCell.y], store.grid.cells[playerCell.x + 1][playerCell.y]];
+        const cells = [store.grid.cells[playerCell.x][playerCell.y], cell[store.player.orientation]];
         cells.forEach(cell => {
           if (cell !== undefined && cell.prop) {
             if (cell.prop.type == 'plugIn' && !store.player.hasPlug) {
@@ -577,6 +534,7 @@ const keyset = {
             }
           }
         });
+        
       }
     },
     hold: () => {},
