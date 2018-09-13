@@ -15,7 +15,6 @@
 
 // # DEV_ONLY
 // hot-reload
-require('../style.css');
 // will be referenced directly by id
 const canvas = document.getElementById('gamearea');
 
@@ -113,7 +112,16 @@ class Grid {
               cell.prop.zIndex = cell.y;
             }
             this.objectRenderStack.push(cell);
-          }       
+          }
+          
+          if (cell.prop.color !== undefined) {
+            context.fillStyle = cell.prop.color;
+            if (cell.prop.oY == 195) {
+              context.fillRect(cell.x * cell.size + 45, cell.y * cell.size + 65, 10, 10);
+            } else if (cell.prop.oY == 235) {
+              context.fillRect(cell.x * cell.size + 45, cell.y * cell.size + 63, 10, 10);
+            }
+          }
         }
       });
     });
@@ -189,6 +197,7 @@ class Player {
     // UP
     if (direction == 0) {
       if (this.cable !== undefined && this.cable.disabledAxis == 0) {
+        console.log('up');
         return;
       }
 
@@ -219,6 +228,7 @@ class Player {
     // DOWN
     if (direction == 1) {
       if (this.cable !== undefined && this.cable.disabledAxis == 0) {
+        console.log('down');
         return;
       }
 
@@ -249,6 +259,8 @@ class Player {
     // LEFT
     if (direction == 2) {
       if (this.cable !== undefined && this.cable.disabledAxis == 1) {
+        console.log('left');
+
         return;
       }
 
@@ -279,6 +291,7 @@ class Player {
     // RIGHT
     if (direction == 3) {
       if (this.cable !== undefined && this.cable.disabledAxis == 1) {
+        console.log('right');
         return;
       }
 
@@ -566,6 +579,16 @@ const cable = {
 
 // Will be inlined later on, but its nice to have em together when im still changing things
 const text = {
+  end: {
+    x: 200,
+    y: 400,
+    boxWidth: 50,
+    duration: 0,
+    holdTime: 0,
+    elapsed: 0,
+    scale: 13,
+    value: 'Thanks for playing!',
+  },
   menu: [{
     x: 260,
     y: 50,
@@ -574,7 +597,7 @@ const text = {
     holdTime: 0,
     elapsed: 0,
     scale: 7,
-    value: 'Reconnected',
+    value: 'Misconnected',
   }, {
     x: 345,
     y: 120,
@@ -609,9 +632,10 @@ const text = {
       elapsed: 0,
       duration: 500,
       scale: 2,
-      value: `Welcome to Reconnected!\n\nYou can use arrows to\nmove around.\nPress spacebar to interact with\nthings you encounter.\n\nSee those wireframey things?\n
+      value: `Welcome to Misconnected!\n\nYou can use arrows to\nmove around.\nPress spacebar to interact with\nthings you encounter.\n\nSee those wireframey things?\n
 Those are ceiling hooks.\nYou can use them to turn your\ncable 90 degrees!\n\nUse them to get the plugs to\nthe sockets.\nBut remember!\nThey are color coded, so you
-need to plan them accordingly!\n\n\nJust a tip: cables cannot cross\nand you can only use\nthe same hook once!\n\nWhen you are finished placing\ncables: pull the power switch.\n\n\nGood luck and have fun!`,
+need to plan them accordingly!\n\n\nJust a tip: cables cannot cross\nand you can only use\nthe same hook once!\n\nWhen you are finished placing\ncables: pull the power switch.\n\n\nGood luck and have fun!\n
+\n\n\n\nMute music with M.`,
     }]
 };
 
@@ -621,15 +645,20 @@ const store = {
   grid: new Grid(10, 100),
   player: new Player(500, 300),
   cables: [],
+  audio: null,
+  music: true,
   game: {
     phase: '',
     tick: 0,
     fpsInterval: getFps(60),
     blackout: false,
+    level: 2,
   },
   transition: {
     active: false,
     tick: 0,
+    type: 'fadeIn',
+    fade: false,
   },
 }
 
@@ -639,16 +668,42 @@ const keyset = {
   32: {
     press: () => {
       if (store.game.phase == 'menu') {
-        store.transition.active = true;
+        nextLevel(() => {
+          store.grid = new Grid(10, 100);
+
+          store.grid.cells[5][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[5][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[6][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[6][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[7][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[7][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[8][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+          store.grid.cells[8][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+          store.grid.cells[5][6].prop = Object.assign({}, gameProps.cableHook);
+          store.grid.cells[9][6].prop = Object.assign({}, gameProps.cableHook);
+          store.grid.cells[5][9].prop = Object.assign({}, gameProps.wallPlugIn0);
+          store.grid.cells[9][0].prop = Object.assign({}, gameProps.wallSocketOut1);
+          store.grid.cells[7][9].prop = Object.assign({}, gameProps.powerSwitch);
+          store.grid.collidableCells.push(store.grid.cells[5][4]);
+          store.grid.collidableCells.push(store.grid.cells[6][4]);
+          store.grid.collidableCells.push(store.grid.cells[7][4]);
+          store.grid.collidableCells.push(store.grid.cells[8][4]);
+          store.grid.collidableCells.push(store.grid.cells[5][9]);
+          store.grid.collidableCells.push(store.grid.cells[9][0]);
+          store.grid.collidableCells.push(store.grid.cells[7][9]);
+
+          store.game.phase = 'game';
+          store.game.level = 0;
+        });
       }
 
-      if (store.game.phase == 'tutorial') {
+      if (store.game.phase == 'game') {
         const cell = store.grid.cells[((store.player.x + store.player.boundingBox[2] / 2) / store.grid.cellSize) | 0][((store.player.y + store.player.boundingBox[3] / 2) / store.grid.cellSize) | 0];
 
         if (cell !== undefined && cell.prop) {
           if (cell.prop.type == 'plugIn' && store.player.cable == undefined) {
-            cell.prop = Object.assign({}, gameProps.wallPlugOut0);
-            const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], '#ae3030');
+            cell.prop = Object.assign({}, gameProps.wallPlugOut0, { color: cell.prop.color });
+            const cable = new Cable([cell.x * cell.size + 50, cell.y * cell.size + 80], cell.prop.color);
             cable.isPickedUp = true;
             cable.disabledAxis = cell.prop.orientation = 0 || 1 ? 1 : 0;
 
@@ -668,17 +723,19 @@ const keyset = {
           }
           
           if (cell.prop.type == 'socketOut' && store.player.cable !== undefined) {
-            cell.prop = Object.assign({}, gameProps.wallSocketIn1);
+            if (cell.prop.color == store.player.cable.color) {
+              cell.prop = Object.assign({}, Object.values(gameProps).find(x => x.oY == cell.prop.oY && x.oX !== cell.prop.oX), {color: cell.prop.color });
             
-            if (cell.prop.orientation == 1) {
-              store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 70]);
-            } else {
-              store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 45]);
+              if (cell.prop.orientation == 1) {
+                store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 70]);
+              } else {
+                store.player.cable.points.push([cell.x * cell.size + 50, cell.y * cell.size + 45]);
+              }
+              
+              store.player.cable.isPickedUp = false;
+              store.cables.push(store.player.cable);
+              store.player.cable = undefined;
             }
-            
-            store.player.cable.isPickedUp = false;
-            store.cables.push(store.player.cable);
-            store.player.cable = undefined;
           }
 
           if (cell.prop.type == 'switch') {
@@ -694,8 +751,112 @@ const keyset = {
 
             if (isComplete) {
               store.game.blackout = false;
+              
+              if (store.game.level == 0) {
+                nextLevel(() => {
+                  store.grid = new Grid(10, 100);
+                  store.player = new Player(200, 800);
+
+                  for (let i = 2; i < 8; i++) {
+                    store.grid.cells[i][2].prop = Object.assign({}, gameProps.serverMachineTop1);
+                    store.grid.cells[i][3].prop = Object.assign({}, gameProps.serverMachineBottom1);
+                    store.grid.cells[i][5].prop = Object.assign({}, gameProps.serverMachineTop1);
+                    store.grid.cells[i][6].prop = Object.assign({}, gameProps.serverMachineBottom1);
+
+                    store.grid.collidableCells.push(store.grid.cells[i][3]);
+                    store.grid.collidableCells.push(store.grid.cells[i][6]);
+                  }
+
+                  store.grid.cells[0][4].prop = Object.assign({}, gameProps.cableHook);
+                  store.grid.cells[9][4].prop = Object.assign({}, gameProps.cableHook);
+                  store.grid.cells[9][8].prop = Object.assign({}, gameProps.cableHook);
+                  store.grid.cells[5][8].prop = Object.assign({}, gameProps.cableHook);
+                  store.grid.cells[0][9].prop = Object.assign({}, gameProps.wallPlugIn0, { color: '#264cc4'});
+                  store.grid.cells[5][9].prop = Object.assign({}, gameProps.wallSocketOut0, { color: '#264cc4'});
+                  store.grid.cells[7][9].prop = Object.assign({}, gameProps.powerSwitch);
+
+                  store.grid.collidableCells.push(store.grid.cells[0][9]);
+                  store.grid.collidableCells.push(store.grid.cells[5][9]);
+                  store.grid.collidableCells.push(store.grid.cells[7][9]);
+
+                  store.game.level = 1;
+                });
+              }
+
+              if (store.game.level == 1) {
+                nextLevel(() => {
+                  store.grid = new Grid(10, 100);
+                  store.player = new Player(200, 800);
+
+                  for (let i = 0; i < 10; i++) {
+                    if (i % 2) {
+                      store.grid.cells[i][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+                      store.grid.cells[i][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+
+                      store.grid.cells[i][6].prop = Object.assign({}, gameProps.serverMachineTop1);
+                      store.grid.cells[i][7].prop = Object.assign({}, gameProps.serverMachineBottom1);
+
+                      store.grid.collidableCells.push(store.grid.cells[i][4]);
+                      store.grid.collidableCells.push(store.grid.cells[i][7]);                      
+                    }                    
+                  }
+
+                  store.grid.cells[0][9].prop = Object.assign({}, gameProps.wallPlugIn0);
+                  store.grid.cells[4][9].prop = Object.assign({}, gameProps.wallPlugIn0, { color: '#264cc4'});
+                  store.grid.cells[8][9].prop = Object.assign({}, gameProps.wallPlugIn0, { color: '#0ea821'});
+                  
+                  store.grid.cells[0][0].prop = Object.assign({}, gameProps.wallSocketOut1);
+                  store.grid.cells[4][0].prop = Object.assign({}, gameProps.wallSocketOut1, { color: '#264cc4'});
+                  store.grid.cells[6][0].prop = Object.assign({}, gameProps.powerSwitch);
+                  store.grid.cells[8][0].prop = Object.assign({}, gameProps.wallSocketOut1, { color: '#0ea821'});
+                  store.grid.collidableCells.push(store.grid.cells[0][9]);
+                  store.grid.collidableCells.push(store.grid.cells[4][9]);
+                  store.grid.collidableCells.push(store.grid.cells[8][9]);
+
+                  store.game.level = 2;
+                });
+              }
             } else {
               store.game.blackout = true;
+            }
+
+            if (store.game.level == 2) {
+              nextLevel(() => {
+                store.grid = new Grid(10, 100);
+                store.player = new Player(200, 800);
+
+                for (let i = 0; i <= 9; i++) {
+                  store.grid.cells[i][3].prop = Object.assign({}, gameProps.serverMachineTop1);
+                  store.grid.cells[i][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
+                  store.grid.collidableCells.push(store.grid.cells[i][4]);
+                }
+
+                  store.grid.cells[1][9].prop = Object.assign({}, gameProps.wallPlugIn0, { color: '#264cc4'});
+                  store.grid.cells[3][9].prop = Object.assign({}, gameProps.wallPlugIn0, { color: '#0ea821'});
+                  store.grid.collidableCells.push(store.grid.cells[1][9]);
+                  store.grid.collidableCells.push(store.grid.cells[3][9]);
+
+                  store.grid.cells[6][9].prop = Object.assign({}, gameProps.wallSocketOut0, { color: '#0ea821'});
+                  store.grid.cells[8][9].prop = Object.assign({}, gameProps.wallSocketOut0, { color: '#264cc4'});
+                  store.grid.collidableCells.push(store.grid.cells[6][9]);
+                  store.grid.collidableCells.push(store.grid.cells[8][9]);
+
+                  store.grid.cells[3][7].prop = Object.assign({}, gameProps.cableHook);
+                  store.grid.cells[6][7].prop = Object.assign({}, gameProps.cableHook);
+
+                  store.grid.cells[1][5].prop = Object.assign({}, gameProps.cableHook);
+                  store.grid.cells[8][5].prop = Object.assign({}, gameProps.cableHook);
+
+                  store.grid.cells[5][9].prop = Object.assign({}, gameProps.powerSwitch);
+
+                  store.game.level = 3;
+              });
+            }
+
+            if (store.game.level == 3) {
+              nextLevel(() => {
+                store.game.phase = 'end';
+              });
             }
           }
         }
@@ -763,6 +924,18 @@ const keyset = {
       store.player.activeAnimation = playerAnimations.standing;
     },
   },
+
+  77: {
+    press: () => {
+      if (store.music) {
+        store.audio.pause();
+      } else {
+        store.audio.play();
+      }
+    },
+    hold: () => {},
+    release: () => {},
+  }
 }
 
 // # EVENT_HOOKS ----------------------------------------------------------
@@ -864,80 +1037,69 @@ function animate() {
       
       writeText(text.menu[2], true);
 
-      if (store.transition.active) {
-        writeText(text.menu[3], true);
-
-        const transitionAlpha = 0.05 * store.transition.tick;
-        context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
-        context.fillRect(0, 0, canvasWidth, canvasHeight);
-
-        store.transition.tick++;
-
-        if (transitionAlpha == 1) {
-          store.transition.tick = 0;
-          store.game.fpsInterval = getFps(60);
-
-          store.grid = new Grid(10, 100);
-          store.grid.cells[5][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-          store.grid.cells[5][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-          store.grid.cells[6][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-          store.grid.cells[6][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-          store.grid.cells[7][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-          store.grid.cells[7][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-          store.grid.cells[8][3].prop = Object.assign({}, gameProps.serverMachineTop1);
-          store.grid.cells[8][4].prop = Object.assign({}, gameProps.serverMachineBottom1);
-          store.grid.cells[5][6].prop = Object.assign({}, gameProps.cableHook);
-          store.grid.cells[9][6].prop = Object.assign({}, gameProps.cableHook);
-          store.grid.cells[5][9].prop = Object.assign({}, gameProps.wallPlugIn0);
-          store.grid.cells[9][0].prop = Object.assign({}, gameProps.wallSocketOut1);
-          store.grid.cells[7][9].prop = Object.assign({}, gameProps.powerSwitch);
-          store.grid.collidableCells.push(store.grid.cells[5][4]);
-          store.grid.collidableCells.push(store.grid.cells[6][4]);
-          store.grid.collidableCells.push(store.grid.cells[7][4]);
-          store.grid.collidableCells.push(store.grid.cells[8][4]);
-          store.grid.collidableCells.push(store.grid.cells[5][9]);
-          store.grid.collidableCells.push(store.grid.cells[9][0]);
-          store.grid.collidableCells.push(store.grid.cells[7][9]);
-
-          store.game.phase = 'tutorial';
-        }
-      } else {
-        writeText(text.menu[1], true);
-      }
-
       store.game.tick++;
     }
 
     // # TUTORIAL ----------------------------------------------------------
-    if (store.game.phase == 'tutorial') {
-      // Background
-      context.fillStyle = 'purple';
+    if (store.game.phase == 'end') {
+      context.fillStyle = '#2b75a0';
       context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      store.grid.render();
+    }
 
-      // Draw tutorial textbox
-      context.strokeStyle = '#0f4666';
-      context.lineWidth = 8;
-      context.fillStyle = '#2b75a0';
-      context.fillRect(20, 20, 400, canvasHeight - 40);
-      context.strokeRect(20, 20, 400, canvasHeight - 40);
+    if (store.game.phase == 'game') {
 
-      writeText(text.tutorial[0], true);
+      store.grid.render(); 
 
-      if (store.transition.active) {
-        const transitionAlpha = 1 - 0.05 * store.transition.tick;
-        context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
-        context.fillRect(0, 0, canvasWidth, canvasHeight);
+      if (store.game.level == 0) {
+        // Draw tutorial textbox
+        context.strokeStyle = '#0f4666';
+        context.lineWidth = 8;
+        context.fillStyle = '#2b75a0';
+        context.fillRect(20, 20, 400, canvasHeight - 40);
+        context.strokeRect(20, 20, 400, canvasHeight - 40);
 
-        store.transition.tick++;
+        writeText(text.tutorial[0], true);             
+      }
+    }
 
-        if (transitionAlpha == 0) {
-          store.transition.active = false;
-        }
+    if (store.transition.active && store.transition.type == 'fadeIn') {
+      const transitionAlpha = 0.02 * store.transition.tick;
+      context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
+      context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      store.transition.tick++;
+
+      if (transitionAlpha == 1) {
+        store.transition.tick = 0;
+        store.transition.fade = true;
+        store.transition.type = 'fadeOut';
+      }
+    }
+
+    if (store.transition.active && store.transition.type == 'fadeOut') {
+      const transitionAlpha = 1 - 0.02 * store.transition.tick;
+      context.fillStyle = `rgba(200, 200, 200, ${transitionAlpha})`;
+      context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      store.transition.tick++;
+
+      if (transitionAlpha == 0) {
+        store.transition.tick = 0;
+        store.transition.fade = false;
+        store.transition.active = false;
+        store.transition.type = 'fadeIn';
       }
     }
   }
+}
+
+function nextLevel(load) {
+  store.transition.active = true;
+  setTimeout(() => {
+    store.cables = [];
+    load();
+  }, 850);
 }
 
 function getFps(fps) {
@@ -995,6 +1157,31 @@ function writeLetter(letter, x, y, scale, color = 'black') {
 
   context.drawImage(sprites, spriteOx, spriteOy, 5, 9, x, y, 5 * scale, 9 * scale);
 }
+
+/* -*- mode: javascript; tab-width: 4; indent-tabs-mode: nil; -*-
+*
+* Copyright (c) 2011-2013 Marcus Geelnard
+*
+* This software is provided 'as-is', without any express or implied
+* warranty. In no event will the authors be held liable for any damages
+* arising from the use of this software.
+*
+* Permission is granted to anyone to use this software for any purpose,
+* including commercial applications, and to alter it and redistribute it
+* freely, subject to the following restrictions:
+*
+* 1. The origin of this software must not be misrepresented; you must not
+*    claim that you wrote the original software. If you use this software
+*    in a product, an acknowledgment in the product documentation would be
+*    appreciated but is not required.
+*
+* 2. Altered source versions must be plainly marked as such, and must not be
+*    misrepresented as being the original software.
+*
+* 3. This notice may not be removed or altered from any source
+*    distribution.
+*
+*/
 
 var CPlayer = function() {
 
@@ -1518,20 +1705,13 @@ sprites.onload = () => {
   const player = new CPlayer();
   player.init(song);
   var done = false;
+  player.generate();
 
-  done = player.generate() >= 1;
-  setInterval(() => {
-    if (done) {
-      return;
-    }
-  });
-
-  if (done) {
-    var wave = player.createWave();
-    var audio = document.createElement("audio");
-    audio.src = URL.createObjectURL(new Blob([wave], {type: "audio/wav"}));
-    audio.play();
-  }
-
-  animate();
+  setTimeout(() => {
+      var wave = player.createWave();
+      store.audio = document.createElement("audio");
+      store.audio.src = URL.createObjectURL(new Blob([wave], {type: "audio/wav"}));
+      store.audio.play();
+      animate();
+  }, 1000);
 }
